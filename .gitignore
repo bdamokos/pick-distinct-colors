@@ -35,3 +35,5 @@ coverage/
 # Logs
 logs/
 *.log
+pick-distinct-colors*.tgz
+package-lock.json

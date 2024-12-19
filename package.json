@@ -6,11 +6,11 @@
   "module": "dist/index.mjs",
   "type": "module",
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w",
-    "test": "jest",
-    "lint": "eslint src/**/*.js",
-    "format": "prettier --write \"src/**/*.js\"",
+    "build": "npx rollup -c",
+    "dev": "npx rollup -c -w",
+    "test": "npx jest --passWithNoTests",
+    "lint": "npx eslint src/**/*.js",
+    "format": "npx prettier --write \"src/**/*.js\"",
     "prepare": "npm run build",
     "prepublishOnly": "npm test && npm run lint",
     "preversion": "npm run lint",
@@ -24,7 +24,9 @@
     "deltaE",
     "color-analysis",
     "color-selection",
-    "color-palette"
+    "color-palette",
+    "distinct-colors",
+    "color-picker"
   ],
   "author": "Bence Damokos",
   "license": "MIT",
