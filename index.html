@@ -258,71 +258,11 @@
     </div>
 
     <script>
-        // Convert RGB to Lab color space for delta E calculations
-        function rgb2lab(rgb) {
-            let r = rgb[0] / 255,
-                g = rgb[1] / 255,
-                b = rgb[2] / 255;
-
-            r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
-            g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
-            b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
-
-            let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) * 100;
-            let y = (r * 0.2126 + g * 0.7152 + b * 0.0722) * 100;
-            let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) * 100;
-
-            x /= 95.047;
-            y /= 100;
-            z /= 108.883;
-
-            x = x > 0.008856 ? Math.pow(x, 1/3) : (7.787 * x) + 16/116;
-            y = y > 0.008856 ? Math.pow(y, 1/3) : (7.787 * y) + 16/116;
-            z = z > 0.008856 ? Math.pow(z, 1/3) : (7.787 * z) + 16/116;
-
-            return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)];
-        }
-
-        // Calculate Delta E between two Lab colors
-        function deltaE(labA, labB) {
-            let deltaL = labA[0] - labB[0];
-            let deltaA = labA[1] - labB[1];
-            let deltaB = labA[2] - labB[2];
-            return Math.sqrt(deltaL * deltaL + deltaA * deltaA + deltaB * deltaB);
-        }
-
-        // Generate random RGB color
-        function randomColor() {
-            return [
-                Math.floor(Math.random() * 256),
-                Math.floor(Math.random() * 256),
-                Math.floor(Math.random() * 256)
-            ];
-        }
-
-        // Convert RGB to hex
-        function rgbToHex(rgb) {
-            return '#' + rgb.map(x => {
-                const hex = x.toString(16);
-                return hex.length === 1 ? '0' + hex : hex;
-            }).join('');
-        }
-
         // Generate initial set of random colors
-        let initialColors = Array.from({length: 50}, () => randomColor());
+        let initialColors;
 
         // Calculate distance matrix
-        function calculateDistanceMatrix(colors) {
-            const labColors = colors.map(rgb2lab);
-            const matrix = [];
-            for (let i = 0; i < colors.length; i++) {
-                matrix[i] = [];
-                for (let j = 0; j < colors.length; j++) {
-                    matrix[i][j] = deltaE(labColors[i], labColors[j]);
-                }
-            }
-            return matrix;
-        }
+
 
 
         // Method 2: Greedy algorithm
@@ -332,182 +272,15 @@
 
 
         // Method 4: Exact Minimum Distance (Brute Force)
-        function exactMinimumDistance(colors, selectCount) {
-            return new Promise((resolve, reject) => {
-                console.log('Starting Exact Minimum Distance calculation...');
-                const start = performance.now();
-                
-                const worker = createExactMinimumWorker();
-                let lastProgress = 0;
-                let timeoutId = null;
-                let cancelled = false;
-                let currentBest = null;  // Track current best solution
-                
-                worker.onmessage = function(e) {
-                    if (cancelled) return;
-                    
-                    if (e.data.type === 'progress') {
-                        const progress = e.data.progress;
-                        currentBest = e.data.currentBest;  // Update current best
-                        if (progress - lastProgress >= 1) {
-                            showSpinner(
-                                `Running Exact Minimum algorithm... ${progress.toFixed(1)}%`,
-                                timeoutId !== null, // Show cancel button if timeout has occurred
-                                () => {
-                                    cancelled = true;
-                                    worker.terminate();
-                                    if (currentBest) {  // Use tracked current best
-                                        resolve({
-                                            colors: currentBest.map(i => colors[i]),
-                                            time: performance.now() - start,
-                                            cancelled: true,
-                                            progress: progress
-                                        });
-                                    } else {
-                                        reject(new Error('No solution found yet'));
-                                    }
-                                }
-                            );
-                            lastProgress = progress;
-                        }
-                    } else if (e.data.type === 'complete') {
-                        const result = e.data.result;
-                        worker.terminate();
-                        if (timeoutId) clearTimeout(timeoutId);
-                        resolve({
-                            colors: result.selection.map(i => colors[i]),
-                            time: result.time
-                        });
-                    } else if (e.data.type === 'error') {
-                        worker.terminate();
-                        if (timeoutId) clearTimeout(timeoutId);
-                        reject(new Error(e.data.error));
-                    }
-                };
 
-                worker.onerror = function(error) {
-                    if (timeoutId) clearTimeout(timeoutId);
-                    worker.terminate();
-                    reject(new Error('Worker error: ' + (error.message || 'Unknown error')));
-                };
-
-                // Start the worker with initial data
-                worker.postMessage({ colors, selectCount });
-
-                // After 2 minutes, show cancel button but don't automatically cancel
-                timeoutId = setTimeout(() => {
-                    showSpinner(
-                        `Running Exact Minimum algorithm... ${lastProgress.toFixed(1)}%`,
-                        true,
-                        () => {
-                            cancelled = true;
-                            worker.terminate();
-                            if (currentBest) {  // Use tracked current best
-                                resolve({
-                                    colors: currentBest.map(i => colors[i]),
-                                    time: performance.now() - start,
-                                    cancelled: true,
-                                    progress: lastProgress
-                                });
-                            } else {
-                                reject(new Error('No solution found yet'));
-                            }
-                        }
-                    );
-                }, 120000);
-            });
-        }
 
         // Calculate metrics for a set of colors
-        function calculateMetrics(colors) {
-            const labColors = colors.map(rgb2lab);
-            let minDist = Infinity;
-            let maxDist = -Infinity;  // Add this to help verify calculations
-            let sumDist = 0;
-            let count = 0;
-            
-            // Calculate all pairwise distances
-            for (let i = 0; i < colors.length; i++) {
-                for (let j = i + 1; j < colors.length; j++) {
-                    const dist = deltaE(labColors[i], labColors[j]);
-                    minDist = Math.min(minDist, dist);
-                    maxDist = Math.max(maxDist, dist);  // Track maximum distance
-                    sumDist += dist;
-                    count++;
-                }
-            }
-            
-            // Add debugging information
-            console.log(`Metrics calculation:
-                - Number of colors: ${colors.length}
-                - Number of pairs: ${count}
-                - Min distance: ${minDist.toFixed(2)}
-                - Max distance: ${maxDist.toFixed(2)}
-                - Sum of distances: ${sumDist.toFixed(2)}
-                - Average distance: ${(sumDist / count).toFixed(2)}
-            `);
-            
-            return {
-                min: minDist,
-                max: maxDist,  // Add this to the return object
-                avg: sumDist / count,
-                sum: sumDist,
-                pairs: count   // Add this to help verify
-            };
-        }
+
 
         // Add this new function after calculateMetrics
-        function findClosestPair(colors) {
-            const labColors = colors.map(rgb2lab);
-            let minDist = Infinity;
-            let closestPair = [0, 1];
-            
-            for (let i = 0; i < colors.length; i++) {
-                for (let j = i + 1; j < colors.length; j++) {
-                    const dist = deltaE(labColors[i], labColors[j]);
-                    if (dist < minDist) {
-                        minDist = dist;
-                        closestPair = [i, j];
-                    }
-                }
-            }
-            
-            return {
-                colors: [colors[closestPair[0]], colors[closestPair[1]]],
-                distance: minDist
-            };
-        }
 
         // Create color spectrum plot
-        function createSpectrumPlot(colors, elementId) {
-            const labColors = colors.map(rgb2lab);
-            const trace = {
-                x: labColors.map(lab => lab[1]),  // a* component
-                y: labColors.map(lab => lab[2]),  // b* component
-                mode: 'markers',
-                type: 'scatter',
-                marker: {
-                    size: 10,
-                    color: colors.map(rgb => rgbToHex(rgb))
-                }
-            };
 
-            const layout = {
-                title: 'Color Distribution in Lab Color Space',
-                xaxis: {title: 'a* (green-red)'},
-                yaxis: {title: 'b* (blue-yellow)'}
-            };
-
-            Plotly.newPlot(elementId, [trace], layout);
-            
-            // Add export button next to the plot
-            const container = document.getElementById(elementId).parentElement;
-            const exportButton = document.createElement('button');
-            exportButton.className = 'export-button';
-            exportButton.textContent = 'Export Colors';
-            exportButton.onclick = () => showExportModal(colors);
-            container.insertBefore(exportButton, document.getElementById(elementId));
-        }
 
         // Update the analyzeColorDistribution function to handle large datasets
         function analyzeColorDistribution(colors) {
@@ -697,7 +470,7 @@
                             });
                             break;
                         case 'Exact Minimum':
-                            selectedAlgorithms[algorithmName] = () => exactMinimumDistance(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.exactMinimum(initialColors, selectColors);
                             break;
                     }
                 }
@@ -854,85 +627,6 @@
             }
         }
 
-        // Add this function to measure the machine's performance
-        function calibratePerformance() {
-            return new Promise(resolve => {
-                const workerCode = `
-                    function* combinations(n, r) {
-                        const indices = Array(r).fill(0);
-                        let i = 0;
-                        while (i < r) {
-                            indices[i] = i;
-                            i++;
-                        }
-                        yield indices.slice();
-                        while (true) {
-                            i = r - 1;
-                            while (i >= 0 && indices[i] >= n - r + i) {
-                                i--;
-                            }
-                            if (i < 0) {
-                                return;
-                            }
-                            indices[i]++;
-                            for (let j = i + 1; j < r; j++) {
-                                indices[j] = indices[j - 1] + 1;
-                            }
-                            yield indices.slice();
-                        }
-                    }
-
-                    function measureSpeed() {
-                        const start = performance.now();
-                        let count = 0;
-                        const testCases = [
-                            { n: 20, r: 5, samples: 2000 },  // Small case
-                            { n: 30, r: 10, samples: 2000 }, // Medium case
-                            { n: 40, r: 15, samples: 1000 }  // Larger case
-                        ];
-                        
-                        let totalTime = 0;
-                        let totalCombinations = 0;
-
-                        for (const testCase of testCases) {
-                            const testStart = performance.now();
-                            for (const combo of combinations(testCase.n, testCase.r)) {
-                                count++;
-                                // Simulate the actual calculation work
-                                let minDist = Infinity;
-                                for (let i = 0; i < combo.length; i++) {
-                                    for (let j = i + 1; j < combo.length; j++) {
-                                        const dist = Math.abs(combo[i] - combo[j]);
-                                        minDist = Math.min(minDist, dist);
-                                    }
-                                }
-                                if (count >= testCase.samples) break;
-                            }
-                            const testTime = performance.now() - testStart;
-                            totalTime += testTime;
-                            totalCombinations += testCase.samples;
-                        }
-                        
-                        return (totalCombinations / (totalTime / 1000)); // combinations per second
-                    }
-
-                    self.onmessage = function() {
-                        const speed = measureSpeed();
-                        self.postMessage(speed);
-                    };
-                `;
-
-                const blob = new Blob([workerCode], { type: 'application/javascript' });
-                const worker = new Worker(URL.createObjectURL(blob));
-                
-                worker.onmessage = function(e) {
-                    worker.terminate();
-                    resolve(e.data);
-                };
-                
-                worker.postMessage({});
-            });
-        }
 
         // Modify initializePage to include calibration
         async function initializePage() {
@@ -1125,45 +819,7 @@
         }
 
         // Add this new function to format time estimates
-        function formatTimeEstimate(seconds) {
-            if (seconds < 1) return 'less than a second';
-            
-            const timeUnits = [
-                { unit: 'millennium', plural: 'millennia', seconds: 31557600000 },
-                { unit: 'century', plural: 'centuries', seconds: 3155760000 },
-                { unit: 'decade', plural: 'decades', seconds: 315576000 },
-                { unit: 'year', plural: 'years', seconds: 31557600 },
-                { unit: 'month', plural: 'months', seconds: 2629800 },
-                { unit: 'week', plural: 'weeks', seconds: 604800 },
-                { unit: 'day', plural: 'days', seconds: 86400 },
-                { unit: 'hour', plural: 'hours', seconds: 3600 },
-                { unit: 'minute', plural: 'minutes', seconds: 60 },
-                { unit: 'second', plural: 'seconds', seconds: 1 }
-            ];
 
-            // Find the two largest applicable units
-            let primaryUnit = timeUnits.find(unit => seconds >= unit.seconds);
-            if (!primaryUnit) return 'less than a second';
-
-            const primaryValue = Math.floor(seconds / primaryUnit.seconds);
-            const remainingSeconds = seconds % primaryUnit.seconds;
-
-            // Find the next unit down that has a value
-            const secondaryUnit = timeUnits.find(unit => 
-                unit.seconds < primaryUnit.seconds && remainingSeconds >= unit.seconds
-            );
-
-            let timeString = `${primaryValue} ${primaryValue === 1 ? primaryUnit.unit : primaryUnit.plural}`;
-            
-            if (secondaryUnit) {
-                const secondaryValue = Math.floor(remainingSeconds / secondaryUnit.seconds);
-                if (secondaryValue > 0) {
-                    timeString += ` and ${secondaryValue} ${secondaryValue === 1 ? secondaryUnit.unit : secondaryUnit.plural}`;
-                }
-            }
-
-            return timeString;
-        }
 
         // Modify updateComplexityEstimate to use the new time formatting
         function updateComplexityEstimate() {
@@ -1203,66 +859,7 @@
             `;
         }
 
-        // Add this new function to provide the explanations
-        function getAlgorithmExplanation(algorithmName) {
-            const explanations = {
-                'Maximum Sum Global': 
-                    'This algorithm calculates the total deltaE distance from each color to all other colors in the ' +
-                    'initial set, then selects the N colors that have the highest total distances globally. Colors with ' +
-                    'high deltaE distances to many other colors in the complete set are selected, optimizing for colors ' +
-                    'that are generally different from the entire set.',
-                
-                'Maximum Sum Sequential': 
-                    'This algorithm uses a sequential selection process. It first calculates total distances and picks the ' +
-                    'color with the highest global distance. Then, for each subsequent selection, it chooses the color that ' +
-                    'maximizes the sum of distances to only the previously selected colors, building the palette one color ' +
-                    'at a time.',
-                
-                'Greedy': 
-                    'Starting with the first color, this algorithm iteratively selects the color that has the maximum minimum ' +
-                    'distance to all previously selected colors. It builds the solution step by step, making the locally optimal ' +
-                    'choice at each step. While not guaranteed to find the global optimum, it usually produces good results quickly.',
-                
-                'Simulated Annealing': 
-                    'This is a probabilistic optimization algorithm inspired by the annealing process in metallurgy. It starts with ' +
-                    'a random selection and iteratively makes small changes, accepting improvements and occasionally accepting worse ' +
-                    'solutions based on a decreasing "temperature" parameter. This allows it to escape local optima and potentially ' +
-                    'find better solutions than greedy approaches.',
-                
-                'K Means': 
-                    'This algorithm uses the k-means++ initialization strategy to select diverse colors. It starts by randomly ' +
-                    'selecting one color, then iteratively chooses subsequent colors with probability proportional to their squared ' +
-                    'distance from the nearest already-selected color. This tends to produce well-distributed selections quickly.',
-                
-                'Genetic Algorithm': 
-                    'Inspired by natural evolution, this algorithm maintains a population of potential solutions and evolves them ' +
-                    'through selection, crossover, and mutation operations. Solutions with better minimum distances between colors ' +
-                    'are more likely to survive and produce offspring, leading to increasingly better selections over generations.',
-                
-                'Particle Swarm': 
-                    'Based on swarm intelligence, this algorithm simulates particles moving through the solution space. Each particle ' +
-                    'adjusts its trajectory based on its own best known position and the swarm\'s best known position. This social ' +
-                    'behavior helps particles converge on optimal color selections.',
-                
-                'Ant Colony': 
-                    'This algorithm simulates how ants find optimal paths using pheromone trails. Virtual ants construct solutions ' +
-                    'by selecting colors, leaving pheromone trails proportional to solution quality. Over time, stronger trails ' +
-                    'emerge for better color combinations, guiding future selections.',
-                
-                'Tabu Search': 
-                    'This algorithm uses memory structures (tabu lists) to guide a local search procedure. It prevents cycling back ' +
-                    'to recently visited solutions by maintaining a list of forbidden moves, while allowing the search to escape ' +
-                    'local optima through strategic acceptance of non-improving moves.',
-                
-                'Exact Minimum': 
-                    'This algorithm performs an exhaustive search through all possible combinations of colors to find the globally ' +
-                    'optimal solution. It guarantees finding the best possible selection but becomes computationally intensive for ' +
-                    'large sets. It has a time complexity of O(n choose k), where n is the total number of colors and k is the ' +
-                    'number of colors to select.'
-            };
-            
-            return explanations[algorithmName] || 'No explanation available for this algorithm.';
-        }
+
 
         // First, add this new function at the end of the script section:
         function createExactMinimumWorker() {
@@ -1407,19 +1004,7 @@
         }
 
         // Add this new function to format execution times
-        function formatExecutionTime(timeInMs) {
-            if (timeInMs < 0.001) {
-                const timeInNs = timeInMs * 1000000;
-                return `${timeInNs.toFixed(0)}ns`;
-            } else if (timeInMs < 1) {
-                const timeInUs = timeInMs * 1000;
-                return `${timeInUs.toFixed(1)}µs`;
-            } else if (timeInMs < 1000) {
-                return `${timeInMs.toFixed(2)}ms`;
-            } else {
-                return `${(timeInMs / 1000).toFixed(2)}s`;
-            }
-        }
+
 
         // Method 5: K-Means++
 
@@ -1448,7 +1033,11 @@
         }
 
         // The existing event listener can stay as is
-        document.addEventListener('DOMContentLoaded', initializePage);
+        document.addEventListener('DOMContentLoaded', () => {
+            initializePage();
+            // Set initial colors after modules are loaded
+            initialColors = Array.from({length: 50}, () => window.randomColor());
+        });
 
         // First, add this new function to handle dynamic rankings
         function updateRankings() {
@@ -1755,12 +1344,12 @@
                     summary = `Using ${importedCount} imported colors`;
                 } else { // append
                     const randomCount = totalColors;
-                    initialColors = Array.from({length: randomCount}, () => randomColor())
+                    initialColors = Array.from({length: randomCount}, () => window.randomColor())
                         .concat(window.importedColors.colors);
                     summary = `Generated ${randomCount} random colors and added ${importedCount} imported colors`;
                 }
             } else {
-                initialColors = Array.from({length: totalColors}, () => randomColor());
+                initialColors = Array.from({length: totalColors}, () => window.randomColor());
                 summary = `Generated ${totalColors} random colors`;
             }
             

@@ -129,4 +129,37 @@ export function rgbToHex(rgb) {
         const hex = x.toString(16);
         return hex.length === 1 ? '0' + hex : hex;
     }).join('');
+}
+
+export function calculateDistanceMatrix(colors) {
+    const labColors = colors.map(rgb2lab);
+    const matrix = [];
+    for (let i = 0; i < colors.length; i++) {
+        matrix[i] = [];
+        for (let j = 0; j < colors.length; j++) {
+            matrix[i][j] = deltaE(labColors[i], labColors[j]);
+        }
+    }
+    return matrix;
+}
+
+export function findClosestPair(colors) {
+    const labColors = colors.map(rgb2lab);
+    let minDist = Infinity;
+    let closestPair = [0, 1];
+    
+    for (let i = 0; i < colors.length; i++) {
+        for (let j = i + 1; j < colors.length; j++) {
+            const dist = deltaE(labColors[i], labColors[j]);
+            if (dist < minDist) {
+                minDist = dist;
+                closestPair = [i, j];
+            }
+        }
+    }
+    
+    return {
+        colors: [colors[closestPair[0]], colors[closestPair[1]]],
+        distance: minDist
+    };
 } 
