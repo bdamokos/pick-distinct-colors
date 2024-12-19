@@ -15,6 +15,9 @@ import { formatExecutionTime, formatTimeEstimate } from './utils/timeUtils.js';
 import { createSpectrumPlot } from './utils/plotUtils.js';
 import { getAlgorithmExplanation } from './utils/algorithmUtils.js';
 import { calibratePerformance } from './utils/performanceUtils.js';
+import { showSpinner, hideSpinner, toggleSettings, toggleImportPanel, initializePage, updateGenerateButtonText, updateComplexityEstimate, generateInitialColors } from './utils/uiUtils.js';
+import { showExportModal, updateExportText, copyToClipboard, importColors, parseColorInput } from './utils/importExportUtils.js';
+import { startCalculation, updateRankings } from './utils/calculationUtils.js';
 
 // Expose the functions to the window object
 window.algorithms = {
@@ -46,4 +49,25 @@ window.randomColor = randomColor;
 window.findClosestPair = findClosestPair;
 window.createSpectrumPlot = createSpectrumPlot;
 window.getAlgorithmExplanation = getAlgorithmExplanation;
-window.calibratePerformance = calibratePerformance; 
+window.calibratePerformance = calibratePerformance;
+
+// Expose UI functions
+window.showSpinner = showSpinner;
+window.hideSpinner = hideSpinner;
+window.toggleSettings = toggleSettings;
+window.toggleImportPanel = toggleImportPanel;
+window.initializePage = initializePage;
+window.updateGenerateButtonText = updateGenerateButtonText;
+window.updateComplexityEstimate = updateComplexityEstimate;
+window.generateInitialColors = generateInitialColors;
+
+// Expose import/export functions
+window.showExportModal = showExportModal;
+window.updateExportText = updateExportText;
+window.copyToClipboard = copyToClipboard;
+window.importColors = importColors;
+window.parseColorInput = parseColorInput;
+
+// Expose calculation functions
+window.startCalculation = startCalculation;
+window.updateRankings = updateRankings; 
