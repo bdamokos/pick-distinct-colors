@@ -119,6 +119,12 @@ export async function startCalculation() {
             algorithmContainer.className = 'algorithm-section';
             algorithmContainer.innerHTML = `
                 <h2>${name}</h2>
+                <div class="algorithm-explanation" style="margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                    <details>
+                        <summary style="cursor: pointer; font-weight: bold;">How this algorithm works</summary>
+                        <p style="margin-top: 10px;">${window.getAlgorithmExplanation(name)}</p>
+                    </details>
+                </div>
                 <div class="swatch-container">
                     ${result.colors.map(rgb => 
                         `<div class="swatch" style="background-color: ${rgbToHex(rgb)}"></div>`
@@ -156,6 +162,12 @@ export async function startCalculation() {
             errorContainer.className = 'algorithm-section';
             errorContainer.innerHTML = `
                 <h2>${name}</h2>
+                <div class="algorithm-explanation" style="margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                    <details>
+                        <summary style="cursor: pointer; font-weight: bold;">How this algorithm works</summary>
+                        <p style="margin-top: 10px;">${window.getAlgorithmExplanation(name)}</p>
+                    </details>
+                </div>
                 <p style="color: red;">Error: ${error.message}</p>
             `;
             document.getElementById('results').appendChild(errorContainer);
@@ -182,7 +194,8 @@ export function updateRankings() {
         
         const titleElement = section.querySelector('h2');
         if (titleElement) {
-            const algorithmName = titleElement.textContent;
+            // Get only the text content before any child elements
+            const algorithmName = titleElement.childNodes[0].textContent.trim();
             const metricsText = Array.from(section.querySelectorAll('p'));
             
             // Extract minimum deltaE
