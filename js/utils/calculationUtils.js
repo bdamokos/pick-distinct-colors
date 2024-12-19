@@ -5,6 +5,15 @@ import { formatExecutionTime } from './timeUtils.js';
 import { showSpinner, hideSpinner } from './uiUtils.js';
 import { showExportModal } from './importExportUtils.js';
 
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 export async function startCalculation() {
     console.log('Starting calculation...');
     const selectColors = parseInt(document.getElementById('selectColors').value);
@@ -195,7 +204,7 @@ export function updateRankings() {
             
             if (colors.length > 0) {
                 allResults.push({
-                    name: algorithmName,
+                    name: escapeHtml(algorithmName),
                     minDeltaE: minDeltaE,
                     executionTime: executionTime,
                     colors: sortColors(colors)
