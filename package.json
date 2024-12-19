@@ -1,29 +1,60 @@
 {
   "name": "pick-distinct-colors",
-  "version": "1.0.0",
-  "description": "Algorithms for selecting maximally distinct colors",
-  "main": "js/index.js",
+  "version": "0.1.0",
+  "description": "A collection of algorithms and utilities for analyzing and selecting maximally distinct colors",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "type": "module",
-  "exports": {
-    "./algorithms/*": "./js/algorithms/*.js",
-    "./utils/*": "./js/utils/*.js"
-  },
   "scripts": {
-    "start": "npx http-server -c-1"
-  },
-  "devDependencies": {
-    "http-server": "^14.1.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/bdamokos/color-distance.git"
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "jest",
+    "lint": "eslint src/**/*.js",
+    "format": "prettier --write \"src/**/*.js\"",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [
     "color",
     "distance",
-    "algorithms",
-    "optimization"
+    "lab",
+    "deltaE",
+    "color-analysis",
+    "color-selection",
+    "color-palette"
   ],
   "author": "Bence Damokos",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bdamokos/color-distance.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bdamokos/color-distance/issues"
+  },
+  "homepage": "https://github.com/bdamokos/color-distance#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/core": "^7.23.6",
+    "@babel/preset-env": "^7.23.6",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "http-server": "^14.1.1",
+    "jest": "^29.7.0",
+    "prettier": "^3.1.1",
+    "rollup": "^4.9.1"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  }
 } 

@@ -1,0 +1,38 @@
+# Development
+node_modules/
+.git/
+.github/
+.gitignore
+.npmignore
+.babelrc
+.eslintrc.json
+.prettierrc
+rollup.config.js
+
+# Source
+src/
+test/
+demo/
+docs/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build process
+coverage/
+.nyc_output/
+
+# Environment
+.env
+.env.*
+
+# Original files (we only want the built files)
+js/
+css/
+index.html 
