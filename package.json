@@ -32,12 +32,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bdamokos/color-distance.git"
+    "url": "git+https://github.com/bdamokos/pick-distinct-colors.git"
   },
   "bugs": {
-    "url": "https://github.com/bdamokos/color-distance/issues"
+    "url": "https://github.com/bdamokos/pick-distinct-colors/issues"
   },
-  "homepage": "https://github.com/bdamokos/color-distance#readme",
+  "homepage": "https://github.com/bdamokos/pick-distinct-colors#readme",
   "dependencies": {},
   "devDependencies": {
     "@babel/core": "^7.23.6",
