@@ -1,0 +1,29 @@
+{
+  "name": "pick-distinct-colors",
+  "version": "1.0.0",
+  "description": "Algorithms for selecting maximally distinct colors",
+  "main": "js/index.js",
+  "type": "module",
+  "exports": {
+    "./algorithms/*": "./js/algorithms/*.js",
+    "./utils/*": "./js/utils/*.js"
+  },
+  "scripts": {
+    "start": "npx http-server -c-1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bdamokos/color-distance.git"
+  },
+  "keywords": [
+    "color",
+    "distance",
+    "algorithms",
+    "optimization"
+  ],
+  "author": "Bence Damokos",
+  "license": "MIT"
+} 
