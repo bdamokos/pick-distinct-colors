@@ -216,6 +216,28 @@
             margin-top: 10px;
             background-color: #3498db;
         }
+
+        /* Add to the style section */
+        .import-panel {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            background-color: #f8f8f8;
+        }
+
+        .import-panel textarea {
+            width: 100%;
+            min-height: 100px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
+        .import-error {
+            color: #ff0000;
+            margin-top: 5px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -718,62 +740,27 @@
         // Modify the startCalculation function to properly handle async operations:
         async function startCalculation() {
             console.log('Starting calculation...');
-            const totalColors = parseInt(document.getElementById('totalColors').value);
             const selectColors = parseInt(document.getElementById('selectColors').value);
             
-            if (selectColors > totalColors) {
+            if (!initialColors || initialColors.length === 0) {
+                alert('Please generate initial colors first');
+                return;
+            }
+            
+            if (selectColors > initialColors.length) {
                 alert('Number of colors to select cannot be greater than total colors');
                 return;
             }
 
-            // Clear previous results
-            document.getElementById('results').innerHTML = '';
-            document.getElementById('initial-colors').innerHTML = '';
+            // Clear only the algorithm results, not the initial colors section
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
             
-            showSpinner('Generating initial colors...');
-            
-            // Use setTimeout to allow the spinner to render
-            await new Promise(resolve => setTimeout(resolve, 0));
-            
-            console.log(`Generating ${totalColors} initial colors...`);
-            initialColors = Array.from({length: totalColors}, () => randomColor());
-            
-            // Before creating initialHtml, sort the initial colors and calculate metrics
-            const sortedInitialColors = sortColors(initialColors);
-            const metrics = calculateMetrics(sortedInitialColors);
-            const distribution = analyzeColorDistribution(sortedInitialColors);
-            
-            const initialHtml = `
-                <h2>Initial Colors</h2>
-                <div>
-                    ${sortedInitialColors.map(rgb => 
-                        `<div class="swatch" style="background-color: ${rgbToHex(rgb)}"></div>`
-                    ).join('')}
-                </div>
-                <div class="metrics">
-                    <p>Total Colors: ${totalColors}</p>
-                    <p>Minimum deltaE: ${metrics.min.toFixed(2)}</p>
-                    <div style="display: flex; align-items: center;">
-                        <span>Closest pair: </span>
-                        ${(() => {
-                            const closest = findClosestPair(sortedInitialColors);
-                            return closest.colors.map(rgb => 
-                                `<div class="swatch" style="background-color: ${rgbToHex(rgb)}; margin: 0 5px;"></div>`
-                            ).join('');
-                        })()}
-                        <span>(deltaE: ${findClosestPair(sortedInitialColors).distance.toFixed(2)})</span>
-                    </div>
-                    <p>Average deltaE: ${metrics.avg.toFixed(2)}</p>
-                    <p>Sum deltaE: ${metrics.sum.toFixed(2)}</p>
-                    <p>Distribution Analysis:<br/> ${distribution}</p>
-                </div>
-                <div id="initial-plot" style="width:600px;height:400px;"></div>
-            `;
-            
-            document.getElementById('initial-colors').innerHTML = initialHtml;
-            createSpectrumPlot(sortedInitialColors, 'initial-plot');
-            
-            hideSpinner();
+            // Remove any existing rankings
+            const existingRankings = document.querySelector('.algorithm-section[data-type="summary"]');
+            if (existingRankings) {
+                existingRankings.remove();
+            }
 
             // Process each algorithm sequentially
             const selectedAlgorithms = {};
@@ -858,14 +845,9 @@
                                 <span>(deltaE: ${findClosestPair(result.colors).distance.toFixed(2)})</span>
                             </div>
                             <p>Average deltaE: ${metrics.avg.toFixed(2)}</p>
-                            <p>Sum deltaE: ${metrics.sum.toFixed(2)}</p>
-                            <p>Distribution Analysis: ${distribution}</p>
+                            <p>Distribution Analysis:<br/> ${distribution}</p>
                         </div>
                         <div id="${plotId}" style="width:600px;height:400px;"></div>
-                        <div class="algorithm-explanation" style="margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 5px;">
-                            <h4 style="margin-top: 0;">How ${name} works:</h4>
-                            <p>${getAlgorithmExplanation(name)}</p>
-                        </div>
                     `;
                     
                     document.getElementById('results').appendChild(algorithmContainer);
@@ -1062,14 +1044,38 @@
             const controlHtml = `
                 <div class="control-panel">
                     <div class="input-group">
-                        <label for="totalColors">Number of colors to generate:</label>
-                        <input type="number" id="totalColors" value="30" min="10" max="1000">
+                        <label for="totalColors">Number of random colors to generate:</label>
+                        <input type="number" id="totalColors" value="30" min="0" max="1000">
                     </div>
                     <div class="input-group">
                         <label for="selectColors">Number of colors to select:</label>
                         <input type="number" id="selectColors" value="10" min="2">
                     </div>
                     
+                    <div class="import-panel">
+                        <button class="settings-toggle" onclick="toggleImportPanel(this)">Import Custom Colors</button>
+                        <div class="settings-container">  <!-- This div needs the settings-container class -->
+                            <div class="algorithm-settings">
+                                <p>Paste colors in any of these formats:</p>
+                                <ul style="font-family: monospace; font-size: 0.9em;">
+                                    <li>#RRGGBB (one per line)</li>
+                                    <li>rgb(r,g,b) (one per line)</li>
+                                    <li>r,g,b (one per line)</li>
+                                    <li>JavaScript array: [[r,g,b], ...]</li>
+                                </ul>
+                                <textarea id="importText" placeholder="Paste colors here..."></textarea>
+                                <div>
+                                    <input type="radio" id="replace" name="importMode" value="replace" checked>
+                                    <label for="replace">Replace random colors</label>
+                                    <input type="radio" id="append" name="importMode" value="append">
+                                    <label for="append">Add to random colors</label>
+                                </div>
+                                <div class="import-error" id="importError"></div>
+                                <button onclick="importColors()">Import Colors</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="input-group" style="border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px;">
                         <h3 style="margin: 0 0 10px 0;">Algorithm Selection</h3>
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
@@ -1195,7 +1201,11 @@
                         </div>
                     </div>
 
-                    <button onclick="startCalculation()">Generate and Calculate</button>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button onclick="generateInitialColors()" id="generateButton">Generate Colors</button>
+                        <button onclick="startCalculation()" id="calculateButton" disabled>Calculate Most Distinct Colors</button>
+                    </div>
+                    <div id="colorSummary" style="margin-top: 10px; font-style: italic;"></div>
                     <div id="complexityEstimate" style="margin-top: 10px; font-style: italic;"></div>
                 </div>
             `;
@@ -1214,6 +1224,9 @@
             document.getElementById('totalColors').addEventListener('input', updateComplexityEstimate);
             document.getElementById('selectColors').addEventListener('input', updateComplexityEstimate);
             updateComplexityEstimate(); // Initial estimate
+
+            // Add this to the initializePage function after creating the controlHtml
+            document.getElementById('totalColors').addEventListener('input', updateGenerateButtonText);
         }
 
         // Add this new function to format time estimates
@@ -1259,13 +1272,25 @@
 
         // Modify updateComplexityEstimate to use the new time formatting
         function updateComplexityEstimate() {
-            const n = parseInt(document.getElementById('totalColors').value);
-            const r = parseInt(document.getElementById('selectColors').value);
+            const selectCount = parseInt(document.getElementById('selectColors').value);
+            let totalColors;
+            
+            // Calculate total colors based on both imported and random colors
+            if (window.importedColors) {
+                const randomCount = parseInt(document.getElementById('totalColors').value);
+                if (window.importedColors.mode === 'replace') {
+                    totalColors = window.importedColors.colors.length;
+                } else {
+                    totalColors = randomCount + window.importedColors.colors.length;
+                }
+            } else {
+                totalColors = parseInt(document.getElementById('totalColors').value);
+            }
             
             // Calculate number of combinations (n choose r)
             let combinations = 1;
-            for (let i = 0; i < r; i++) {
-                combinations *= (n - i) / (i + 1);
+            for (let i = 0; i < selectCount; i++) {
+                combinations *= (totalColors - i) / (i + 1);
             }
             
             // Use calibrated speed if available, otherwise use default estimate
@@ -1792,11 +1817,10 @@
                     solutions.push(solution);
                     
                     // Evaluate solution
-                    const fitness = Math.min(...solution.map((i, idx) =>
-                        solution.slice(idx + 1).map(j =>
+                    const fitness = Math.min(...solution.map((i, idx) => 
+                        solution.slice(idx + 1).map(j => 
                             deltaE(labColors[i], labColors[j])
-                        )
-                    ).flat());
+                        ).flat());
                     
                     if (fitness > bestFitness) {
                         bestFitness = fitness;
@@ -1925,7 +1949,11 @@
         // Add this function after initializePage
         function toggleSettings(button) {
             button.classList.toggle('active');
-            button.closest('.input-group').querySelector('.settings-container').classList.toggle('show');
+            // Find the closest container - either input-group or import-panel
+            const container = button.closest('.input-group, .import-panel');
+            if (container) {
+                container.querySelector('.settings-container').classList.toggle('show');
+            }
             button.textContent = button.classList.contains('active') ? 'Hide Settings' : 'Show Settings';
         }
 
@@ -2101,6 +2129,201 @@
             const originalText = button.textContent;
             button.textContent = 'Copied!';
             setTimeout(() => button.textContent = originalText, 2000);
+        }
+
+        // Add these new functions
+        function toggleImportPanel(button) {
+            toggleSettings(button); // Reuse existing toggle function
+        }
+
+        // Add event listeners to the radio buttons in the importColors function
+        function importColors() {
+            const input = document.getElementById('importText').value.trim();
+            const mode = document.querySelector('input[name="importMode"]:checked').value;
+            const errorDiv = document.getElementById('importError');
+            
+            try {
+                let importedColors = parseColorInput(input);
+                
+                if (importedColors.length === 0) {
+                    throw new Error('No valid colors found in input');
+                }
+
+                // Validate colors
+                importedColors = importedColors.map(color => {
+                    if (!Array.isArray(color) || color.length !== 3 || 
+                        !color.every(v => Number.isInteger(v) && v >= 0 && v <= 255)) {
+                        throw new Error('Invalid color format. Each color must be RGB values between 0-255');
+                    }
+                    return color;
+                });
+
+                // Store imported colors
+                window.importedColors = {
+                    colors: importedColors,
+                    mode: mode
+                };
+
+                // Add event listeners to radio buttons
+                document.querySelectorAll('input[name="importMode"]').forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        if (window.importedColors) {
+                            window.importedColors.mode = radio.value;
+                            updateGenerateButtonText();
+                            updateComplexityEstimate();
+                        }
+                    });
+                });
+
+                // Update UI and complexity estimate
+                const randomCount = parseInt(document.getElementById('totalColors').value);
+                const totalCount = mode === 'replace' ? importedColors.length : randomCount + importedColors.length;
+                
+                document.getElementById('generateButton').textContent = 
+                    `Generate ${totalCount} Colors (${mode === 'replace' ? 
+                    'imported only' : 
+                    `${randomCount} random + ${importedColors.length} imported`})`;
+                
+                updateComplexityEstimate();
+                
+                errorDiv.style.display = 'none';
+                document.getElementById('importText').value = ''; // Clear input
+                
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                window.importedColors = null;
+                document.getElementById('generateButton').textContent = 'Generate Colors';
+            }
+        }
+
+        function parseColorInput(input) {
+            // Remove any surrounding brackets and split into lines
+            input = input.replace(/^\[|\]$/g, '').trim();
+            
+            if (input === '') return [];
+            
+            // Try parsing as array first
+            try {
+                if (input.includes('[')) {
+                    return JSON.parse(`[${input}]`);
+                }
+            } catch {}
+            
+            // Split into lines and parse each line
+            return input.split('\n').map(line => {
+                line = line.trim();
+                if (!line) return null;
+                
+                // Try parsing as hex
+                if (line.startsWith('#')) {
+                    const hex = line.substring(1);
+                    return [
+                        parseInt(hex.substr(0,2), 16),
+                        parseInt(hex.substr(2,2), 16),
+                        parseInt(hex.substr(4,2), 16)
+                    ];
+                }
+                
+                // Try parsing as rgb() format
+                if (line.startsWith('rgb(')) {
+                    const values = line.substring(4, line.length - 1).split(',');
+                    return values.map(v => parseInt(v.trim()));
+                }
+                
+                // Try parsing as comma-separated values
+                const values = line.split(',');
+                if (values.length === 3) {
+                    return values.map(v => parseInt(v.trim()));
+                }
+                
+                throw new Error(`Could not parse color: ${line}`);
+            }).filter(color => color !== null);
+        }
+
+        // Add new function for generating initial colors
+        function generateInitialColors() {
+            const totalColors = parseInt(document.getElementById('totalColors').value);
+            let summary = '';
+            
+            // Clear previous results but keep initial colors if they exist
+            document.getElementById('results').innerHTML = '';
+            
+            if (window.importedColors) {
+                const importMode = window.importedColors.mode;
+                const importedCount = window.importedColors.colors.length;
+                
+                if (importMode === 'replace') {
+                    initialColors = window.importedColors.colors;
+                    summary = `Using ${importedCount} imported colors`;
+                } else { // append
+                    const randomCount = totalColors;
+                    initialColors = Array.from({length: randomCount}, () => randomColor())
+                        .concat(window.importedColors.colors);
+                    summary = `Generated ${randomCount} random colors and added ${importedCount} imported colors`;
+                }
+            } else {
+                initialColors = Array.from({length: totalColors}, () => randomColor());
+                summary = `Generated ${totalColors} random colors`;
+            }
+            
+            // Update the display
+            const sortedInitialColors = sortColors(initialColors);
+            const metrics = calculateMetrics(sortedInitialColors);
+            const distribution = analyzeColorDistribution(sortedInitialColors);
+            
+            document.getElementById('colorSummary').textContent = summary;
+            document.getElementById('calculateButton').disabled = false;
+            
+            const initialHtml = `
+                <h2>Initial Colors (${initialColors.length} total)</h2>
+                <div>
+                    ${sortedInitialColors.map(rgb => 
+                        `<div class="swatch" style="background-color: ${rgbToHex(rgb)}"></div>`
+                    ).join('')}
+                </div>
+                <div class="metrics">
+                    <p>Total Colors: ${initialColors.length}</p>
+                    <p>Minimum deltaE: ${metrics.min.toFixed(2)}</p>
+                    <div style="display: flex; align-items: center;">
+                        <span>Closest pair: </span>
+                        ${(() => {
+                            const closest = findClosestPair(sortedInitialColors);
+                            return closest.colors.map(rgb => 
+                                `<div class="swatch" style="background-color: ${rgbToHex(rgb)}; margin: 0 5px;"></div>`
+                            ).join('');
+                        })()}
+                        <span>(deltaE: ${findClosestPair(sortedInitialColors).distance.toFixed(2)})</span>
+                    </div>
+                    <p>Average deltaE: ${metrics.avg.toFixed(2)}</p>
+                    <p>Distribution Analysis:<br/> ${distribution}</p>
+                </div>
+                <div id="initial-plot" style="width:600px;height:400px;"></div>
+            `;
+            
+            document.getElementById('initial-colors').innerHTML = initialHtml;
+            createSpectrumPlot(sortedInitialColors, 'initial-plot');
+        }
+
+        // Add this new function
+        function updateGenerateButtonText() {
+            const randomCount = parseInt(document.getElementById('totalColors').value);
+            const generateButton = document.getElementById('generateButton');
+            
+            if (window.importedColors) {
+                const importedCount = window.importedColors.colors.length;
+                const totalCount = window.importedColors.mode === 'replace' ? 
+                    importedCount : 
+                    randomCount + importedCount;
+                    
+                generateButton.textContent = `Generate ${totalCount} Colors (${
+                    window.importedColors.mode === 'replace' ? 
+                    'imported only' : 
+                    `${randomCount} random + ${importedCount} imported`
+                })`;
+            } else {
+                generateButton.textContent = `Generate ${randomCount} Colors`;
+            }
         }
     </script>
 </body>
