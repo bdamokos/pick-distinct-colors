@@ -1,6 +1,6 @@
 {
   "name": "pick-distinct-colors",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A collection of algorithms and utilities for analyzing and selecting maximally distinct colors",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -59,4 +59,4 @@
   "engines": {
     "node": ">=14.0.0"
   }
-} 
+}
