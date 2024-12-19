@@ -1820,7 +1820,7 @@
                     const fitness = Math.min(...solution.map((i, idx) => 
                         solution.slice(idx + 1).map(j => 
                             deltaE(labColors[i], labColors[j])
-                        ).flat());
+                        ).flat()));
                     
                     if (fitness > bestFitness) {
                         bestFitness = fitness;
@@ -2042,10 +2042,17 @@
                                     <div style="width: 200px;">${result.name}</div>
                                     <div style="margin-right: 20px; width: 80px;">deltaE: ${paddedDeltaE}</div>
                                     <div style="margin-right: 20px; width: 120px;">Time: ${result.executionTime}</div>
-                                    <div class="swatch-container">
-                                        ${result.colors.map(rgb => 
-                                            `<div class="swatch" style="background-color: rgb(${rgb.join(',')}"></div>`
-                                        ).join('')}
+                                    <div style="display: flex; align-items: center;">
+                                        <div class="swatch-container">
+                                            ${result.colors.map(rgb => 
+                                                `<div class="swatch" style="background-color: rgb(${rgb.join(',')}"></div>`
+                                            ).join('')}
+                                        </div>
+                                        <button onclick="showExportModal(${JSON.stringify(result.colors)})" 
+                                                style="background: none; border: none; cursor: pointer; padding: 5px; margin-left: 10px;"
+                                                title="Export these colors">
+                                            📋
+                                        </button>
                                     </div>
                                 </div>
                             `;
