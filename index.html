@@ -326,99 +326,10 @@
 
 
         // Method 2: Greedy algorithm
-        function greedySelection(colors, selectCount) {
-            console.log('Starting Greedy algorithm calculation...');
-            const start = performance.now();
-            const labColors = colors.map(rgb2lab);
-            const selected = [0];
-            
-            while (selected.length < selectCount) {
-                let maxMinDist = -1;
-                let bestIndex = -1;
-                
-                for (let i = 0; i < colors.length; i++) {
-                    if (selected.includes(i)) continue;
-                    
-                    let minDist = Infinity;
-                    for (let j of selected) {
-                        const dist = deltaE(labColors[i], labColors[j]);
-                        minDist = Math.min(minDist, dist);
-                    }
-                    
-                    if (minDist > maxMinDist) {
-                        maxMinDist = minDist;
-                        bestIndex = i;
-                    }
-                }
-                
-                selected.push(bestIndex);
-            }
-            
-            console.log('Greedy algorithm calculation complete');
-            return {
-                colors: sortColors(selected.map(i => colors[i])),
-                time: performance.now() - start
-            };
-        }
+
 
         // Method 3: Simulated Annealing
-        function simulatedAnnealing(colors, selectCount) {
-            console.log('Starting Simulated Annealing calculation...');
-            const start = performance.now();
-            const labColors = colors.map(rgb2lab);
-            let current = Array.from({length: selectCount}, (_, i) => i);
-            
-            // Get configuration values
-            const temp = parseFloat(document.getElementById('initialTemp').value);
-            const coolingRate = parseFloat(document.getElementById('coolingRate').value);
-            const minTemp = parseFloat(document.getElementById('minTemp').value);
-            
-            function getMinDistance(solution) {
-                let minDist = Infinity;
-                for (let i = 0; i < solution.length; i++) {
-                    for (let j = i + 1; j < solution.length; j++) {
-                        const dist = deltaE(labColors[solution[i]], labColors[solution[j]]);
-                        minDist = Math.min(minDist, dist);
-                    }
-                }
-                return minDist;
-            }
-            
-            let currentScore = getMinDistance(current);
-            let best = [...current];
-            let bestScore = currentScore;
-            let currentTemp = temp;
-            
-            while (currentTemp > minTemp) {
-                const neighbor = [...current];
-                const i = Math.floor(Math.random() * selectCount);
-                let newColor;
-                do {
-                    newColor = Math.floor(Math.random() * colors.length);
-                } while (neighbor.includes(newColor));
-                neighbor[i] = newColor;
-                
-                const neighborScore = getMinDistance(neighbor);
-                const delta = neighborScore - currentScore;
-                
-                if (delta > 0 || Math.random() < Math.exp(delta / currentTemp)) {
-                    current = neighbor;
-                    currentScore = neighborScore;
-                    if (currentScore > bestScore) {
-                        best = [...current];
-                        bestScore = currentScore;
-                    }
-                }
-                
-                currentTemp *= coolingRate;
-            }
-            
-            console.log('Simulated Annealing calculation complete');
-            return {
-                colors: sortColors(best.map(i => colors[i])),
-                time: performance.now() - start
-            };
-        }
+
 
         // Method 4: Exact Minimum Distance (Brute Force)
         function exactMinimumDistance(colors, selectCount) {
@@ -748,25 +659,42 @@
                             selectedAlgorithms[algorithmName] = () => window.algorithms.maxSumDistancesSequential(initialColors, selectColors);
                             break;
                         case 'Greedy':
-                            selectedAlgorithms[algorithmName] = () => greedySelection(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.greedySelection(initialColors, selectColors);
                             break;
                         case 'Simulated Annealing':
-                            selectedAlgorithms[algorithmName] = () => simulatedAnnealing(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.simulatedAnnealing(initialColors, selectColors, {
+                                initialTemp: parseFloat(document.getElementById('initialTemp').value),
+                                coolingRate: parseFloat(document.getElementById('coolingRate').value),
+                                minTemp: parseFloat(document.getElementById('minTemp').value)
+                            });
                             break;
                         case 'K Means':
-                            selectedAlgorithms[algorithmName] = () => kmeansppSelection(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.kmeansppSelection(initialColors, selectColors);
                             break;
                         case 'Genetic Algorithm':
-                            selectedAlgorithms[algorithmName] = () => geneticAlgorithm(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.geneticAlgorithm(initialColors, selectColors, {
+                                populationSize: parseInt(document.getElementById('populationSize').value),
+                                generations: parseInt(document.getElementById('generations').value),
+                                mutationRate: parseFloat(document.getElementById('mutationRate').value)
+                            });
                             break;
                         case 'Particle Swarm':
-                            selectedAlgorithms[algorithmName] = () => particleSwarmOptimization(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.particleSwarmOptimization(initialColors, selectColors, {
+                                numParticles: parseInt(document.getElementById('numParticles').value),
+                                iterations: parseInt(document.getElementById('psoIterations').value)
+                            });
                             break;
                         case 'Ant Colony':
-                            selectedAlgorithms[algorithmName] = () => antColonyOptimization(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.antColonyOptimization(initialColors, selectColors, {
+                                numAnts: parseInt(document.getElementById('numAnts').value),
+                                iterations: parseInt(document.getElementById('acoIterations').value)
+                            });
                             break;
                         case 'Tabu Search':
-                            selectedAlgorithms[algorithmName] = () => tabuSearch(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.tabuSearch(initialColors, selectColors, {
+                                maxIterations: parseInt(document.getElementById('tabuIterations').value),
+                                tabuTenure: parseInt(document.getElementById('tabuTenure').value)
+                            });
                             break;
                         case 'Exact Minimum':
                             selectedAlgorithms[algorithmName] = () => exactMinimumDistance(initialColors, selectColors);
@@ -1481,437 +1409,32 @@
         // Add this new function to format execution times
         function formatExecutionTime(timeInMs) {
             if (timeInMs < 0.001) {
-                // Convert to nanoseconds (ns)
                 const timeInNs = timeInMs * 1000000;
                 return `${timeInNs.toFixed(0)}ns`;
             } else if (timeInMs < 1) {
-                // Convert to microseconds (µs)
                 const timeInUs = timeInMs * 1000;
                 return `${timeInUs.toFixed(1)}µs`;
             } else if (timeInMs < 1000) {
-                // Show milliseconds (ms)
                 return `${timeInMs.toFixed(2)}ms`;
             } else {
-                // Show seconds (s)
                 return `${(timeInMs / 1000).toFixed(2)}s`;
             }
         }
 
         // Method 5: K-Means++
-        function kmeansppSelection(colors, selectCount) {
-            console.log('Starting K-Means++ calculation...');
-            const start = performance.now();
-            const labColors = colors.map(rgb2lab);
-            
-            // Initialize centers using k-means++ initialization
-            const centers = [Math.floor(Math.random() * colors.length)];
-            
-            while (centers.length < selectCount) {
-                const distances = new Array(colors.length).fill(0);
-                
-                // Calculate minimum distances to existing centers
-                for (let i = 0; i < colors.length; i++) {
-                    if (centers.includes(i)) continue;
-                    let minDist = Infinity;
-                    for (const center of centers) {
-                        const dist = deltaE(labColors[i], labColors[center]);
-                        minDist = Math.min(minDist, dist);
-                    }
-                    distances[i] = minDist * minDist; // Square distances for weighted probability
-                }
-                
-                // Select next center probabilistically
-                const sum = distances.reduce((a, b) => a + b, 0);
-                let rand = Math.random() * sum;
-                let nextCenter = 0;
-                while (rand > 0) {
-                    if (!centers.includes(nextCenter)) {
-                        rand -= distances[nextCenter];
-                    }
-                    nextCenter++;
-                }
-                centers.push(nextCenter - 1);
-            }
-            
-            console.log('K-Means++ calculation complete');
-            return {
-                colors: sortColors(centers.map(i => colors[i])),
-                time: performance.now() - start
-            };
-        }
+
 
         // Method 6: Genetic Algorithm
-        function geneticAlgorithm(colors, selectCount) {
-            console.log('Starting Genetic Algorithm calculation...');
-            const start = performance.now();
-            const labColors = colors.map(rgb2lab);
-            
-            const populationSize = parseInt(document.getElementById('populationSize').value);
-            const generations = parseInt(document.getElementById('generations').value);
-            const mutationRate = parseFloat(document.getElementById('mutationRate').value);
-            
-            // Initialize population
-            let population = [];
-            for (let i = 0; i < populationSize; i++) {
-                const chromosome = [];
-                while (chromosome.length < selectCount) {
-                    const gene = Math.floor(Math.random() * colors.length);
-                    if (!chromosome.includes(gene)) chromosome.push(gene);
-                }
-                population.push(chromosome);
-            }
-            
-            // Fitness function - minimum distance between any two colors
-            function fitness(chromosome) {
-                let minDist = Infinity;
-                for (let i = 0; i < chromosome.length; i++) {
-                    for (let j = i + 1; j < chromosome.length; j++) {
-                        const dist = deltaE(labColors[chromosome[i]], labColors[chromosome[j]]);
-                        minDist = Math.min(minDist, dist);
-                    }
-                }
-                return minDist;
-            }
-            
-            // Evolution
-            for (let gen = 0; gen < generations; gen++) {
-                // Selection and crossover
-                const newPopulation = [];
-                while (newPopulation.length < populationSize) {
-                    // Tournament selection
-                    const parent1 = population[Math.floor(Math.random() * population.length)];
-                    const parent2 = population[Math.floor(Math.random() * population.length)];
-                    
-                    // Crossover
-                    const crossoverPoint = Math.floor(Math.random() * selectCount);
-                    const child = [...new Set([
-                        ...parent1.slice(0, crossoverPoint),
-                        ...parent2.slice(crossoverPoint)
-                    ])];
-                    
-                    // Fill missing genes if needed
-                    while (child.length < selectCount) {
-                        const gene = Math.floor(Math.random() * colors.length);
-                        if (!child.includes(gene)) child.push(gene);
-                    }
-                    
-                    // Mutation
-                    if (Math.random() < mutationRate) {
-                        const pos = Math.floor(Math.random() * selectCount);
-                        let newGene;
-                        do {
-                            newGene = Math.floor(Math.random() * colors.length);
-                        } while (child.includes(newGene));
-                        child[pos] = newGene;
-                    }
-                    
-                    newPopulation.push(child);
-                }
-                
-                population = newPopulation;
-            }
-            
-            // Find best solution
-            const best = population.reduce((a, b) => fitness(a) > fitness(b) ? a : b);
-            
-            console.log('Genetic Algorithm calculation complete');
-            return {
-                colors: sortColors(best.map(i => colors[i])),
-                time: performance.now() - start
-            };
-        }
+
 
         // Method 7: Particle Swarm Optimization
-        function particleSwarmOptimization(colors, selectCount) {
-            console.log('Starting PSO calculation...');
-            const start = performance.now();
-            const labColors = colors.map(rgb2lab);
-            
-            const numParticles = parseInt(document.getElementById('numParticles').value);
-            const iterations = parseInt(document.getElementById('psoIterations').value);
-            const w = 0.7; // Inertia weight
-            const c1 = 2.0; // Cognitive parameter
-            const c2 = 2.0; // Social parameter
-            
-            // Initialize particles
-            let particles = [];
-            for (let i = 0; i < numParticles; i++) {
-                const position = [];
-                while (position.length < selectCount) {
-                    const color = Math.floor(Math.random() * colors.length);
-                    if (!position.includes(color)) position.push(color);
-                }
-                particles.push({
-                    position: position,
-                    velocity: new Array(selectCount).fill(0),
-                    personalBest: position.slice(),
-                    personalBestFitness: -Infinity
-                });
-            }
-            
-            let globalBest = particles[0].position.slice();
-            let globalBestFitness = -Infinity;
-            
-            // Fitness function
-            function fitness(position) {
-                let minDist = Infinity;
-                for (let i = 0; i < position.length; i++) {
-                    for (let j = i + 1; j < position.length; j++) {
-                        const dist = deltaE(labColors[position[i]], labColors[position[j]]);
-                        minDist = Math.min(minDist, dist);
-                    }
-                }
-                return minDist;
-            }
-            
-            // PSO iterations
-            for (let iter = 0; iter < iterations; iter++) {
-                for (let particle of particles) {
-                    // Update velocity and position
-                    for (let d = 0; d < selectCount; d++) {
-                        const r1 = Math.random();
-                        const r2 = Math.random();
-                        
-                        particle.velocity[d] = Math.floor(
-                            w * particle.velocity[d] +
-                            c1 * r1 * (particle.personalBest[d] - particle.position[d]) +
-                            c2 * r2 * (globalBest[d] - particle.position[d])
-                        );
-                        
-                        // Apply velocity with boundary checking
-                        const newPos = particle.position[d] + particle.velocity[d];
-                        if (newPos >= 0 && newPos < colors.length && 
-                            !particle.position.includes(newPos)) {
-                            particle.position[d] = newPos;
-                        }
-                    }
-                    
-                    // Evaluate fitness
-                    const currentFitness = fitness(particle.position);
-                    
-                    // Update personal best
-                    if (currentFitness > particle.personalBestFitness) {
-                        particle.personalBest = particle.position.slice();
-                        particle.personalBestFitness = currentFitness;
-                        
-                        // Update global best
-                        if (currentFitness > globalBestFitness) {
-                            globalBest = particle.position.slice();
-                            globalBestFitness = currentFitness;
-                        }
-                    }
-                }
-            }
-            
-            console.log('PSO calculation complete');
-            return {
-                colors: sortColors(globalBest.map(i => colors[i])),
-                time: performance.now() - start
-            };
-        }
+     
 
         // Method 8: Ant Colony Optimization
-        function antColonyOptimization(colors, selectCount) {
-            console.log('Starting ACO calculation...');
-            const start = performance.now();
-            const labColors = colors.map(rgb2lab);
-            
-            const numAnts = parseInt(document.getElementById('numAnts').value);
-            const iterations = parseInt(document.getElementById('acoIterations').value);
-            const evaporationRate = 0.1;
-            const alpha = 1; // Pheromone importance
-            const beta = 2;  // Heuristic importance
-            
-            // Initialize pheromone matrix
-            const pheromone = Array(colors.length).fill(0).map(() => 
-                Array(colors.length).fill(1.0)
-            );
-            
-            // Heuristic information (color distances)
-            const heuristic = Array(colors.length).fill(0).map((_, i) => 
-                Array(colors.length).fill(0).map((_, j) => 
-                    i === j ? 0 : deltaE(labColors[i], labColors[j])
-                )
-            );
-            
-            let bestSolution = null;
-            let bestFitness = -Infinity;
-            
-            // ACO iterations
-            for (let iter = 0; iter < iterations; iter++) {
-                const solutions = [];
-                
-                // Each ant constructs a solution
-                for (let ant = 0; ant < numAnts; ant++) {
-                    const solution = [Math.floor(Math.random() * colors.length)];
-                    
-                    // Construct solution
-                    while (solution.length < selectCount) {
-                        const probabilities = [];
-                        let total = 0;
-                        
-                        // Calculate probabilities for each possible next color
-                        for (let i = 0; i < colors.length; i++) {
-                            if (solution.includes(i)) continue;
-                            
-                            let pheromoneProduct = 1;
-                            let heuristicSum = 0;
-                            
-                            for (const j of solution) {
-                                pheromoneProduct *= Math.pow(pheromone[j][i], alpha);
-                                heuristicSum += Math.pow(heuristic[j][i], beta);
-                            }
-                            
-                            const probability = pheromoneProduct * heuristicSum;
-                            probabilities.push({ index: i, prob: probability });
-                            total += probability;
-                        }
-                        
-                        // Select next color using roulette wheel selection
-                        let rand = Math.random() * total;
-                        let nextColor = probabilities[0].index;
-                        for (const { index, prob } of probabilities) {
-                            rand -= prob;
-                            if (rand <= 0) {
-                                nextColor = index;
-                                break;
-                            }
-                        }
-                        
-                        solution.push(nextColor);
-                    }
-                    
-                    solutions.push(solution);
-                    
-                    // Evaluate solution
-                    const fitness = Math.min(...solution.map((i, idx) => 
-                        solution.slice(idx + 1).map(j => 
-                            deltaE(labColors[i], labColors[j])
-                        ).flat()));
-                    
-                    if (fitness > bestFitness) {
-                        bestFitness = fitness;
-                        bestSolution = solution.slice();
-                    }
-                }
-                
-                // Pheromone evaporation
-                for (let i = 0; i < colors.length; i++) {
-                    for (let j = 0; j < colors.length; j++) {
-                        pheromone[i][j] *= (1 - evaporationRate);
-                    }
-                }
-                
-                // Pheromone deposit
-                for (const solution of solutions) {
-                    const deposit = 1.0 / solution.length;
-                    for (let i = 0; i < solution.length - 1; i++) {
-                        for (let j = i + 1; j < solution.length; j++) {
-                            pheromone[solution[i]][solution[j]] += deposit;
-                            pheromone[solution[j]][solution[i]] += deposit;
-                        }
-                    }
-                }
-            }
-            
-            console.log('ACO calculation complete');
-            return {
-                colors: sortColors(bestSolution.map(i => colors[i])),
-                time: performance.now() - start
-            };
-        }
+
 
         // Method 9: Tabu Search
-        function tabuSearch(colors, selectCount) {
-            console.log('Starting Tabu Search calculation...');
-            const start = performance.now();
-            const labColors = colors.map(rgb2lab);
-            
-            const maxIterations = parseInt(document.getElementById('tabuIterations').value);
-            const tabuTenure = parseInt(document.getElementById('tabuTenure').value);
-            
-            // Initialize solution
-            let current = Array.from({length: selectCount}, (_, i) => i);
-            let best = current.slice();
-            let bestFitness = evaluateSolution(best);
-            
-            // Tabu list implementation using a Map to store move expiration
-            const tabuList = new Map();
-            
-            // Evaluate solution fitness (minimum distance between any two colors)
-            function evaluateSolution(solution) {
-                let minDist = Infinity;
-                for (let i = 0; i < solution.length; i++) {
-                    for (let j = i + 1; j < solution.length; j++) {
-                        const dist = deltaE(labColors[solution[i]], labColors[solution[j]]);
-                        minDist = Math.min(minDist, dist);
-                    }
-                }
-                return minDist;
-            }
-            
-            // Generate move key for tabu list
-            function getMoveKey(oldColor, newColor) {
-                return `${oldColor}-${newColor}`;
-            }
-            
-            for (let iter = 0; iter < maxIterations; iter++) {
-                let bestNeighborSolution = null;
-                let bestNeighborFitness = -Infinity;
-                
-                // Examine all possible moves
-                for (let i = 0; i < selectCount; i++) {
-                    for (let j = 0; j < colors.length; j++) {
-                        if (!current.includes(j)) {
-                            const moveKey = getMoveKey(current[i], j);
-                            const neighbor = current.slice();
-                            neighbor[i] = j;
-                            
-                            const fitness = evaluateSolution(neighbor);
-                            
-                            // Accept if better than current best neighbor and not tabu
-                            // or if satisfies aspiration criterion (better than global best)
-                            if ((fitness > bestNeighborFitness && 
-                                 (!tabuList.has(moveKey) || tabuList.get(moveKey) <= iter)) ||
-                                fitness > bestFitness) {
-                                bestNeighborSolution = neighbor;
-                                bestNeighborFitness = fitness;
-                            }
-                        }
-                    }
-                }
-                
-                if (!bestNeighborSolution) break;
-                
-                // Update current solution
-                current = bestNeighborSolution;
-                
-                // Update best solution if improved
-                if (bestNeighborFitness > bestFitness) {
-                    best = current.slice();
-                    bestFitness = bestNeighborFitness;
-                }
-                
-                // Update tabu list
-                for (let i = 0; i < selectCount; i++) {
-                    const moveKey = getMoveKey(current[i], best[i]);
-                    tabuList.set(moveKey, iter + tabuTenure);
-                }
-                
-                // Clean expired tabu moves
-                for (const [move, expiration] of tabuList.entries()) {
-                    if (expiration <= iter) {
-                        tabuList.delete(move);
-                    }
-                }
-            }
-            
-            console.log('Tabu Search calculation complete');
-            return {
-                colors: sortColors(best.map(i => colors[i])),
-                time: performance.now() - start
-            };
-        }
+
 
         // Add this function after initializePage
         function toggleSettings(button) {
