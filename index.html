@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Color Distance Analysis</title>
+    <script type="module" src="js/main.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         .swatch {
@@ -323,40 +324,6 @@
             return matrix;
         }
 
-        // Method 1a: Maximum sum of distances (Global)
-        function maxSumDistancesGlobal(colors, selectCount) {
-            console.log('Starting Maximum Sum (Global) calculation...');
-            const start = performance.now();
-            const labColors = colors.map(rgb2lab);
-            
-            // Calculate the complete distance matrix once
-            const distanceMatrix = Array(colors.length).fill(0).map(() => Array(colors.length).fill(0));
-            for (let i = 0; i < colors.length; i++) {
-                for (let j = i + 1; j < colors.length; j++) {
-                    const dist = deltaE(labColors[i], labColors[j]);
-                    distanceMatrix[i][j] = dist;
-                    distanceMatrix[j][i] = dist;
-                }
-            }
-            
-            // Calculate total distances from each color to all other colors
-            const totalDistances = distanceMatrix.map((row, i) => ({
-                index: i,
-                sum: row.reduce((a, b) => a + b, 0)
-            }));
-            
-            // Sort colors by their total distance to all other colors
-            totalDistances.sort((a, b) => b.sum - a.sum);
-            
-            // Simply take the top selectCount colors
-            const selected = totalDistances.slice(0, selectCount).map(item => item.index);
-            
-            console.log('Maximum Sum (Global) calculation complete');
-            return {
-                colors: sortColors(selected.map(i => colors[i])),
-                time: performance.now() - start
-            };
-        }
 
         // Method 2: Greedy algorithm
         function greedySelection(colors, selectCount) {
@@ -775,10 +742,10 @@
                     
                     switch(algorithmName) {
                         case 'Maximum Sum Global':  
-                            selectedAlgorithms[algorithmName] = () => maxSumDistancesGlobal(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.maxSumDistancesGlobal(initialColors, selectColors);
                             break;
                         case 'Maximum Sum Sequential':  
-                            selectedAlgorithms[algorithmName] = () => maxSumDistancesSequential(initialColors, selectColors);
+                            selectedAlgorithms[algorithmName] = () => window.algorithms.maxSumDistancesSequential(initialColors, selectColors);
                             break;
                         case 'Greedy':
                             selectedAlgorithms[algorithmName] = () => greedySelection(initialColors, selectColors);
