@@ -1,6 +1,8 @@
-# Color Distance
+# Pick Distinct Colors
 
-A JavaScript library for analyzing and selecting maximally distinct colors. This package provides tools for working with colors in Lab color space, calculating color distances, and implementing various algorithms to select sets of colors that are maximally distinct from each other.
+A library for analyzing and selecting maximally distinct colors. This package provides tools for working with colors in Lab color space, calculating color distances, and implementing various algorithms to select sets of colors that are maximally distinct from each other.
+
+Available in both **JavaScript** (npm package) and **Python** implementations.
 
 ## Demo
 ![Demo site](docs/images/demo_site.png)
@@ -58,7 +60,17 @@ color-distance/
 │   └── styles.css          # Application styles
 └── index.html             # Main application page
 
-## Usage
+## Language Implementations
+
+### JavaScript (npm package)
+The main implementation is available as an npm package with a web demo. See the sections below for JavaScript usage.
+
+### Python Implementation
+A complete Python port is available in the `python/` directory. See the [Python README](python/README.md) for installation and usage instructions.
+
+
+
+## JavaScript Usage
 
 ### Basic Color Utilities
 

@@ -54,7 +54,12 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "js",
+    "css",
+    "index.html",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=14.0.0"

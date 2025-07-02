@@ -37,3 +37,5 @@ logs/
 *.log
 pick-distinct-colors*.tgz
 package-lock.json
+__pycache__/
+python/__pycache__/
