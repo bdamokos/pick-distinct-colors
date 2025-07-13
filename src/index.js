@@ -139,3 +139,5 @@ export { antColonyOptimization } from '../js/algorithms/antColony.js';
  * @returns {{colors: number[][], time: number}} Selected colors and execution time
  */
 export { tabuSearch } from '../js/algorithms/tabu.js';
+
+export { pickDistinctColors } from '../js/utils/pickDistinctColors.js';

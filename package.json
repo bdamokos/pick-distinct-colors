@@ -1,7 +1,7 @@
 {
   "name": "pick-distinct-colors",
-  "version": "0.1.1",
-  "description": "A collection of algorithms and utilities for analyzing and selecting maximally distinct colors",
+  "version": "0.1.2",
+  "description": "A collection of algorithms and utilities for analyzing and selecting maximally distinct colors. Now includes a unified pickDistinctColors API for easy color selection.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "type": "module",
@@ -26,7 +26,9 @@
     "color-selection",
     "color-palette",
     "distinct-colors",
-    "color-picker"
+    "color-picker",
+    "pickDistinctColors",
+    "color-algorithms"
   ],
   "author": "Bence Damokos",
   "license": "MIT",

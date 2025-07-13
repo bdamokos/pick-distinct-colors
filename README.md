@@ -15,6 +15,7 @@ Check out the [live demo](https://bdamokos.github.io/color-distance/) to see the
 
 ## Features
 
+- Unified `pickDistinctColors` function for easy color selection with any algorithm
 - Convert colors between RGB and Lab color spaces
 - Calculate deltaE (color difference) between colors
 - Analyze color distributions in Lab space
@@ -90,6 +91,31 @@ console.log(difference); // 128.3
 ```
 
 ### Selecting Distinct Colors
+
+#### Recommended: Unified API (with named arguments)
+
+```javascript
+import { pickDistinctColors } from 'pick-distinct-colors';
+
+// Pick 8 maximally distinct colors using the default (greedy) algorithm:
+const { colors, time } = await pickDistinctColors({ count: 8 });
+
+// Pick 10 colors using a specific algorithm and a custom pool size:
+const result = await pickDistinctColors({ count: 10, algorithm: 'maxSumDistancesGlobal', poolSize: 100 });
+
+// Pick 5 colors from a provided color pool using the genetic algorithm:
+const myColors = [ [255,0,0], [0,255,0], [0,0,255], [255,255,0], [0,255,255], [255,0,255] ];
+const result2 = await pickDistinctColors({ count: 5, algorithm: 'geneticAlgorithm', colors: myColors, options: { populationSize: 50 } });
+```
+
+**Arguments:**
+- `count` (number, required): Number of colors to select
+- `algorithm` (string, optional): Algorithm name (default: 'greedy')
+- `poolSize` (number, optional): Number of random colors to generate if no pool is provided
+- `colors` (array, optional): Array of RGB colors to select from
+- `options` (object, optional): Algorithm-specific options
+
+#### Legacy/Direct Algorithm Usage
 
 ```javascript
 import { maxSumDistancesGlobal } from './js/algorithms/maxSumDistances.js';
