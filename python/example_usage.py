@@ -7,7 +7,15 @@ import pick_distinct_colors as pdc
 
 def main():
     print("=== Pick Distinct Colors - Python Implementation ===\n")
-    
+
+    # Recommended: Unified API with named arguments
+    print("Unified API Example (recommended): pick_distinct_colors with named arguments")
+    result = pdc.pick_distinct_colors({'count': 8, 'algorithm': 'greedy'})
+    print(f"Selected {len(result['colors'])} colors (greedy):")
+    for i, color in enumerate(result['colors']):
+        print(f"  {i+1}. RGB{color} -> {pdc.rgb_to_hex(color)}")
+    print(f"Execution time: {result['time']:.2f}ms\n")
+
     # Example 1: Generate distinct colors from random pool (most common use case)
     print("Example 1: Generate distinct colors using generate_n_colors")
     

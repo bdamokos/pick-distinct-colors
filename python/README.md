@@ -15,6 +15,36 @@ Simply copy the `pick_distinct_colors.py` file to your project directory. The im
 import pick_distinct_colors as pdc
 ```
 
+## Unified API (Recommended)
+
+The Python version now supports a unified API for picking distinct colors, matching the JavaScript version. This is the recommended way to use the library for new code.
+
+```python
+import pick_distinct_colors as pdc
+
+# Pick 8 maximally distinct colors using the default (greedy) algorithm:
+result = pdc.pick_distinct_colors({'count': 8})
+
+# Pick 10 colors using a specific algorithm and a custom pool size:
+result = pdc.pick_distinct_colors({'count': 10, 'algorithm': 'max_sum_global', 'pool_size': 100})
+
+# Pick 5 colors from a provided color pool using the genetic algorithm:
+my_colors = [ (255,0,0), (0,255,0), (0,0,255), (255,255,0), (0,255,255), (255,0,255) ]
+result2 = pdc.pick_distinct_colors({'count': 5, 'algorithm': 'genetic_algorithm', 'colors': my_colors, 'options': {'populationSize': 50}})
+```
+
+**Arguments:**
+- `count` (int, required): Number of colors to select
+- `algorithm` (str, optional): Algorithm name (default: 'greedy')
+- `pool_size` (int, optional): Number of random colors to generate if no pool is provided
+- `colors` (list, optional): List of RGB tuples to select from
+- `options` (dict, optional): Algorithm-specific options
+
+Legacy positional usage is also supported:
+```python
+result = pdc.pick_distinct_colors(8, 'greedy', 80, my_colors, {'populationSize': 50})
+```
+
 ## Quick Start
 
 ```python

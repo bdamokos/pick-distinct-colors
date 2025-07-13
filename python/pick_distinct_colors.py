@@ -923,3 +923,73 @@ def select_distinct_colors(colors: List[Tuple[int, int, int]],
         raise ValueError("Cannot select more colors than available")
     
     return ALGORITHMS[algorithm](colors, select_count, settings)
+
+
+def pick_distinct_colors(args=None, algorithm=None, pool_size=None, colors=None, options=None):
+    """
+    Unified API for picking maximally distinct colors (matches JS version).
+
+    Recommended usage (named arguments):
+        pick_distinct_colors({
+            'count': 8,
+            'algorithm': 'greedy',
+            'pool_size': 80,
+            'colors': [(255,0,0), (0,255,0), ...],
+            'options': {...}
+        })
+
+    Legacy positional usage is also supported for backward compatibility:
+        pick_distinct_colors(8, 'greedy', 80, colors, options)
+
+    Args:
+        args (dict or int): Options dict or count (legacy)
+        algorithm (str): Algorithm name (legacy)
+        pool_size (int): Pool size if generating random colors (legacy)
+        colors (list): List of RGB tuples (legacy)
+        options (dict): Algorithm-specific options (legacy)
+
+    Returns:
+        dict: {'colors': [...], 'time': ...}
+    """
+    # Parse arguments
+    if isinstance(args, dict):
+        count = args.get('count')
+        _algorithm = args.get('algorithm', 'greedy')
+        _pool_size = args.get('pool_size')
+        _colors = args.get('colors')
+        _options = args.get('options')
+    else:
+        count = args
+        _algorithm = algorithm or 'greedy'
+        _pool_size = pool_size
+        _colors = colors
+        _options = options
+    if count is None:
+        raise ValueError('count is required')
+    # Prepare color pool
+    pool = _colors
+    if not pool:
+        size = _pool_size or min(count * 10, 20)
+        pool = generate_random_colors(size)
+    # Call the correct algorithm
+    if _algorithm == 'max_sum_global':
+        return max_sum_distances_global(pool, count)
+    if _algorithm == 'max_sum_sequential':
+        return max_sum_distances_sequential(pool, count)
+    if _algorithm == 'greedy':
+        return greedy_selection(pool, count)
+    if _algorithm == 'kmeans_plus_plus':
+        return kmeans_plus_plus_selection(pool, count)
+    if _algorithm == 'simulated_annealing':
+        return simulated_annealing(pool, count, _options)
+    if _algorithm == 'genetic_algorithm':
+        return genetic_algorithm(pool, count, _options)
+    if _algorithm == 'particle_swarm':
+        return particle_swarm_optimization(pool, count, _options)
+    if _algorithm == 'ant_colony':
+        return ant_colony_optimization(pool, count, _options)
+    if _algorithm == 'tabu_search':
+        return tabu_search(pool, count, _options)
+    if _algorithm == 'exact_minimum':
+        return exact_minimum(pool, count)
+    raise ValueError(f"Unknown algorithm: {_algorithm}")
