@@ -1,6 +1,6 @@
 {
   "name": "pick-distinct-colors",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A collection of algorithms and utilities for analyzing and selecting maximally distinct colors. Now includes a unified pickDistinctColors API for easy color selection.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -62,6 +62,9 @@
     "index.html",
     "README.md",
     "LICENSE"
+  ],
+  "npmignore": [
+    "scripts/"
   ],
   "engines": {
     "node": ">=14.0.0"

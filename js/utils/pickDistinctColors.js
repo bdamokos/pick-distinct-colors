@@ -35,7 +35,7 @@ const ALGORITHMS = {
  * @param {object|number} args - Either an options object or the count (legacy positional signature).
  * @param {number} args.count - Number of colors to select.
  * @param {string} [args.algorithm='greedy'] - Algorithm name (see docs for options).
- * @param {number} [args.poolSize] - Number of random colors to generate if no pool is provided.
+ * @param {number} [args.poolSize] - Number of random colors to generate if no pool is provided (default: Math.max(count * 16, 128)).
  * @param {number[][]} [args.colors] - Optional array of RGB colors to select from.
  * @param {object} [args.options] - Optional algorithm-specific options.
  * @param {number} [args.seed=42] - Seed for deterministic random color generation.
@@ -65,7 +65,7 @@ export async function pickDistinctColors(args, algorithm, poolSize, colors, opti
   }
   let pool = _colors;
   if (!Array.isArray(pool) || pool.length === 0) {
-    const size = _poolSize || Math.max(count * 10, 20);
+    const size = _poolSize || Math.max(count * 16, 128);
     const prng = mulberry32(_seed);
     pool = Array.from({ length: size }, () => randomColor(prng));
   }

@@ -11,6 +11,8 @@ import time
 from itertools import combinations
 from typing import List, Tuple, Dict, Any, Optional
 
+__version__ = '0.2.1'
+
 
 def rgb_to_lab(rgb: Tuple[int, int, int]) -> Tuple[float, float, float]:
     """Convert RGB color to CIELAB color space."""
@@ -933,19 +935,19 @@ def pick_distinct_colors(args=None, algorithm=None, pool_size=None, colors=None,
         pick_distinct_colors({
             'count': 8,
             'algorithm': 'greedy',
-            'pool_size': 80,
+            'pool_size': 128,  # Optional, default: max(count * 16, 128)
             'colors': [(255,0,0), (0,255,0), ...],
             'options': {...},
             'seed': 42
         })
 
     Legacy positional usage is also supported for backward compatibility:
-        pick_distinct_colors(8, 'greedy', 80, colors, options, seed)
+        pick_distinct_colors(8, 'greedy', 128, colors, options, seed)
 
     Args:
         args (dict or int): Options dict or count (legacy)
         algorithm (str): Algorithm name (legacy)
-        pool_size (int): Pool size if generating random colors (legacy)
+        pool_size (int): Pool size if generating random colors (legacy, default: max(count * 16, 128))
         colors (list): List of RGB tuples (legacy)
         options (dict): Algorithm-specific options (legacy)
         seed (int): Seed for deterministic random color generation (default: 42)
@@ -973,7 +975,7 @@ def pick_distinct_colors(args=None, algorithm=None, pool_size=None, colors=None,
     # Prepare color pool
     pool = _colors
     if not pool:
-        size = _pool_size or max(count * 10, 20)
+        size = _pool_size or max(count * 16, 128)
         random.seed(_seed)
         pool = generate_random_colors(size)
     # Call the correct algorithm

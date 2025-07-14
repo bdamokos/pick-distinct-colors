@@ -112,12 +112,13 @@ const result2 = await pickDistinctColors({ count: 5, algorithm: 'geneticAlgorith
 **Arguments:**
 - `count` (number, required): Number of colors to select
 - `algorithm` (string, optional): Algorithm name (default: 'greedy')
-- `poolSize` (number, optional): Number of random colors to generate if no pool is provided
+- `poolSize` (number, optional): Number of random colors to generate if no pool is provided (default: Math.max(count * 16, 128))
 - `colors` (array, optional): Array of RGB colors to select from
 - `options` (object, optional): Algorithm-specific options
 - `seed` (number, optional): Seed for deterministic random color generation (default: 42)
 
-> **Note:** If you use the same `count`, `algorithm`, `poolSize`, and `seed`, you will always get the same result. This makes color selection fully reproducible.
+> **Note:** The default pool size is chosen for best distinctiveness and speed. You can increase it for even more distinct palettes, at the cost of speed.
+> If you use the same `count`, `algorithm`, `poolSize`, and `seed`, you will always get the same result. This makes color selection fully reproducible.
 
 #### Legacy/Direct Algorithm Usage
 
