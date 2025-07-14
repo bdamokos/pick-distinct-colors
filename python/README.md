@@ -47,6 +47,8 @@ result2 = pdc.pick_distinct_colors({'count': 5, 'algorithm': 'genetic_algorithm'
 - `seed` (int, optional): Seed for deterministic random color generation (default: 42)
 
 > **Note:** If you use the same `count`, `algorithm`, `pool_size`, and `seed`, you will always get the same result. This makes color selection fully reproducible.
+> 
+> **Determinism:** By default, `pick_distinct_colors` is deterministic (uses a default seed if none is provided). If you call the underlying algorithms directly (e.g., `greedy_selection`, `genetic_algorithm`), you can omit the `seed` parameter in the `settings` dict to get non-deterministic results, or provide a seed for reproducibility.
 
 Legacy positional usage is also supported:
 ```python

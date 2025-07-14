@@ -119,6 +119,8 @@ const result2 = await pickDistinctColors({ count: 5, algorithm: 'geneticAlgorith
 
 > **Note:** The default pool size is chosen for best distinctiveness and speed. You can increase it for even more distinct palettes, at the cost of speed.
 > If you use the same `count`, `algorithm`, `poolSize`, and `seed`, you will always get the same result. This makes color selection fully reproducible.
+> 
+> **Determinism:** By default, `pickDistinctColors` is deterministic (uses a default seed if none is provided). If you call the underlying algorithms directly (e.g., `greedySelection`, `geneticAlgorithm`), you can omit the `seed` parameter to get non-deterministic results, or provide a seed for reproducibility.
 
 #### Legacy/Direct Algorithm Usage
 

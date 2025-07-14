@@ -1,10 +1,13 @@
-import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
+import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
 
-export function kmeansppSelection(colors, selectCount) {
+export function kmeansppSelection(colors, selectCount, seed) {
     console.log('Starting K-means++ calculation...');
     const start = performance.now();
     
     const labColors = colors.map(rgb2lab);
+    
+    // Use seeded PRNG if seed is provided
+    const prng = typeof seed === 'number' ? mulberry32(seed) : Math.random;
     
     // Helper function to find minimum distance to existing centers
     function minDistanceToCenters(point, centers) {
@@ -15,7 +18,7 @@ export function kmeansppSelection(colors, selectCount) {
     }
     
     // Select initial center randomly
-    const selected = [Math.floor(Math.random() * colors.length)];
+    const selected = [Math.floor(prng() * colors.length)];
     
     // Select remaining centers using k-means++ initialization
     while (selected.length < selectCount) {
@@ -26,7 +29,7 @@ export function kmeansppSelection(colors, selectCount) {
         });
         
         const sum = distances.reduce((a, b) => a + b, 0);
-        let random = Math.random() * sum;
+        let random = prng() * sum;
         let selectedIndex = 0;
         
         while (random > 0 && selectedIndex < distances.length) {

@@ -11,7 +11,7 @@ import time
 from itertools import combinations
 from typing import List, Tuple, Dict, Any, Optional
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 
 def rgb_to_lab(rgb: Tuple[int, int, int]) -> Tuple[float, float, float]:
@@ -260,11 +260,13 @@ def parse_color_list(color_text: str) -> List[Tuple[int, int, int]]:
     return colors
 
 
-def greedy_selection(colors: List[Tuple[int, int, int]], select_count: int, 
-                    settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def greedy_selection(colors: List[Tuple[int, int, int]], select_count: int, settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Greedy algorithm that selects colors with maximum minimum distance to already selected colors.
     """
+    if settings is None:
+        settings = {}
+    prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     selected = []
@@ -276,7 +278,7 @@ def greedy_selection(colors: List[Tuple[int, int, int]], select_count: int,
         return min(delta_e(lab_colors[index], lab_colors[sel_idx]) for sel_idx in selected)
     
     # Select first color randomly
-    first_idx = random.randint(0, len(available) - 1)
+    first_idx = prng.randint(0, len(available) - 1)
     selected.append(available.pop(first_idx))
     
     # Select remaining colors
@@ -325,11 +327,13 @@ def max_sum_distances_global(colors: List[Tuple[int, int, int]], select_count: i
     }
 
 
-def max_sum_distances_sequential(colors: List[Tuple[int, int, int]], select_count: int,
-                                _settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def max_sum_distances_sequential(colors: List[Tuple[int, int, int]], select_count: int, settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Sequentially select colors with maximum sum of distances to already selected colors.
     """
+    if settings is None:
+        settings = {}
+    prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     selected = []
@@ -339,7 +343,7 @@ def max_sum_distances_sequential(colors: List[Tuple[int, int, int]], select_coun
         return sum(delta_e(lab_colors[index], lab_colors[sel_idx]) for sel_idx in selected)
     
     # Select first color randomly
-    first_idx = random.randint(0, len(available) - 1)
+    first_idx = prng.randint(0, len(available) - 1)
     selected.append(available.pop(first_idx))
     
     # Select remaining colors
@@ -362,14 +366,13 @@ def max_sum_distances_sequential(colors: List[Tuple[int, int, int]], select_coun
     }
 
 
-def simulated_annealing(colors: List[Tuple[int, int, int]], select_count: int, 
-                       settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def simulated_annealing(colors: List[Tuple[int, int, int]], select_count: int, settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Simulated annealing optimization for color selection.
     """
     if settings is None:
         settings = {}
-    
+    prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     max_iterations = 10000
@@ -386,7 +389,7 @@ def simulated_annealing(colors: List[Tuple[int, int, int]], select_count: int,
         return min_dist
     
     # Generate initial solution
-    current_solution = random.sample(range(len(colors)), select_count)
+    current_solution = prng.sample(range(len(colors)), select_count)
     current_fitness = calculate_fitness(current_solution)
     
     best_solution = current_solution[:]
@@ -401,16 +404,16 @@ def simulated_annealing(colors: List[Tuple[int, int, int]], select_count: int,
             
         # Generate neighbor by swapping one selected color with an unselected one
         neighbor_solution = current_solution[:]
-        swap_index = random.randint(0, select_count - 1)
+        swap_index = prng.randint(0, select_count - 1)
         available_indices = [i for i in range(len(colors)) if i not in current_solution]
-        new_index = random.choice(available_indices)
+        new_index = prng.choice(available_indices)
         neighbor_solution[swap_index] = new_index
         
         neighbor_fitness = calculate_fitness(neighbor_solution)
         
         # Decide if we should accept the neighbor
         delta = neighbor_fitness - current_fitness
-        if delta > 0 or random.random() < math.exp(delta / temperature):
+        if delta > 0 or prng.random() < math.exp(delta / temperature):
             current_solution = neighbor_solution
             current_fitness = neighbor_fitness
             
@@ -427,11 +430,13 @@ def simulated_annealing(colors: List[Tuple[int, int, int]], select_count: int,
     }
 
 
-def kmeans_plus_plus_selection(colors: List[Tuple[int, int, int]], select_count: int,
-                              _settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def kmeans_plus_plus_selection(colors: List[Tuple[int, int, int]], select_count: int, settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     K-means++ initialization for color selection.
     """
+    if settings is None:
+        settings = {}
+    prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     
@@ -441,7 +446,7 @@ def kmeans_plus_plus_selection(colors: List[Tuple[int, int, int]], select_count:
         return min(delta_e(lab_colors[point], lab_colors[center]) for center in centers)
     
     # Select initial center randomly
-    selected = [random.randint(0, len(colors) - 1)]
+    selected = [prng.randint(0, len(colors) - 1)]
     
     # Select remaining centers using k-means++ initialization
     while len(selected) < select_count:
@@ -457,9 +462,9 @@ def kmeans_plus_plus_selection(colors: List[Tuple[int, int, int]], select_count:
         if total == 0:
             # All remaining colors have zero distance, select randomly
             available = [i for i in range(len(colors)) if i not in selected]
-            selected.append(random.choice(available))
+            selected.append(prng.choice(available))
         else:
-            random_val = random.random() * total
+            random_val = prng.random() * total
             selected_index = 0
             
             while random_val > 0 and selected_index < len(distances):
@@ -477,14 +482,13 @@ def kmeans_plus_plus_selection(colors: List[Tuple[int, int, int]], select_count:
     }
 
 
-def genetic_algorithm(colors: List[Tuple[int, int, int]], select_count: int,
-                     settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def genetic_algorithm(colors: List[Tuple[int, int, int]], select_count: int, settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Genetic algorithm for color selection optimization.
     """
     if settings is None:
         settings = {}
-    
+    prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     population_size = settings.get('populationSize', 100)
@@ -502,7 +506,7 @@ def genetic_algorithm(colors: List[Tuple[int, int, int]], select_count: int,
     # Generate initial population
     population = []
     for _ in range(population_size):
-        individual = random.sample(range(len(colors)), select_count)
+        individual = prng.sample(range(len(colors)), select_count)
         population.append(individual)
     
     best_solution = population[0]
@@ -524,8 +528,8 @@ def genetic_algorithm(colors: List[Tuple[int, int, int]], select_count: int,
         
         while len(new_population) < population_size:
             # Tournament selection
-            tournament1 = [random.randint(0, population_size - 1) for _ in range(3)]
-            tournament2 = [random.randint(0, population_size - 1) for _ in range(3)]
+            tournament1 = [prng.randint(0, population_size - 1) for _ in range(3)]
+            tournament2 = [prng.randint(0, population_size - 1) for _ in range(3)]
             
             parent1_idx = max(tournament1, key=lambda i: fitnesses[i])
             parent2_idx = max(tournament2, key=lambda i: fitnesses[i])
@@ -534,22 +538,22 @@ def genetic_algorithm(colors: List[Tuple[int, int, int]], select_count: int,
             parent2 = population[parent2_idx]
             
             # Crossover
-            crossover_point = random.randint(0, select_count - 1)
+            crossover_point = prng.randint(0, select_count - 1)
             child = list(set(parent1[:crossover_point] + parent2[crossover_point:]))
             
             # Fill up with random colors if needed
             while len(child) < select_count:
                 available = [i for i in range(len(colors)) if i not in child]
-                child.append(random.choice(available))
+                child.append(prng.choice(available))
             
             child = child[:select_count]  # Ensure exact size
             
             # Mutation
-            if random.random() < mutation_rate:
-                mutation_index = random.randint(0, select_count - 1)
+            if prng.random() < mutation_rate:
+                mutation_index = prng.randint(0, select_count - 1)
                 available = [i for i in range(len(colors)) if i not in child]
                 if available:
-                    child[mutation_index] = random.choice(available)
+                    child[mutation_index] = prng.choice(available)
             
             new_population.append(child)
         
@@ -562,14 +566,13 @@ def genetic_algorithm(colors: List[Tuple[int, int, int]], select_count: int,
     }
 
 
-def particle_swarm_optimization(colors: List[Tuple[int, int, int]], select_count: int,
-                               settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def particle_swarm_optimization(colors: List[Tuple[int, int, int]], select_count: int, settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Particle Swarm Optimization for color selection.
     """
     if settings is None:
         settings = {}
-    
+    prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     num_particles = settings.get('numParticles', 30)
@@ -589,7 +592,7 @@ def particle_swarm_optimization(colors: List[Tuple[int, int, int]], select_count
     # Initialize particles
     particles = []
     for _ in range(num_particles):
-        position = random.sample(range(len(colors)), select_count)
+        position = prng.sample(range(len(colors)), select_count)
         particle = {
             'position': position,
             'velocity': [0] * select_count,
@@ -625,14 +628,14 @@ def particle_swarm_optimization(colors: List[Tuple[int, int, int]], select_count
             
             # Update velocity and position (simplified discrete version)
             for i in range(select_count):
-                r1 = random.random()
-                r2 = random.random()
+                r1 = prng.random()
+                r2 = prng.random()
                 
                 # Simplified velocity update for discrete space
-                if random.random() < 0.5:  # Random component for exploration
+                if prng.random() < 0.5:  # Random component for exploration
                     available = [j for j in range(len(colors)) if j not in particle['position']]
                     if available:
-                        particle['position'][i] = random.choice(available)
+                        particle['position'][i] = prng.choice(available)
     
     selected_colors = [colors[i] for i in global_best_position]
     return {
@@ -641,18 +644,17 @@ def particle_swarm_optimization(colors: List[Tuple[int, int, int]], select_count
     }
 
 
-def ant_colony_optimization(colors: List[Tuple[int, int, int]], select_count: int,
-                           settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def ant_colony_optimization(colors: List[Tuple[int, int, int]], select_count: int, settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Ant Colony Optimization for color selection.
     """
     if settings is None:
         settings = {}
-    
+    prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     num_ants = settings.get('numAnts', 20)
-    max_iterations = settings.get('iterations', 100)
+    max_iterations = settings.get('acoIterations', 100)
     evaporation_rate = settings.get('evaporationRate', 0.1)
     alpha = settings.get('pheromoneImportance', 1)
     beta = settings.get('heuristicImportance', 2)
@@ -681,7 +683,7 @@ def ant_colony_optimization(colors: List[Tuple[int, int, int]], select_count: in
             solution = []
             
             # Randomly select first color
-            first_index = random.randint(0, len(available) - 1)
+            first_index = prng.randint(0, len(available) - 1)
             solution.append(available.pop(first_index))
             
             # Select remaining colors
@@ -697,9 +699,9 @@ def ant_colony_optimization(colors: List[Tuple[int, int, int]], select_count: in
                 # Select next color using roulette wheel selection
                 total = sum(probabilities)
                 if total == 0:
-                    selected_index = random.choice(available)
+                    selected_index = prng.choice(available)
                 else:
-                    random_val = random.random() * total
+                    random_val = prng.random() * total
                     selected_index = 0
                     
                     while random_val > 0 and selected_index < len(probabilities):
@@ -737,7 +739,7 @@ def ant_colony_optimization(colors: List[Tuple[int, int, int]], select_count: in
                     pheromones[i] += deposit
     
     if best_solution is None:
-        best_solution = random.sample(range(len(colors)), select_count)
+        best_solution = prng.sample(range(len(colors)), select_count)
     
     selected_colors = [colors[i] for i in best_solution]
     return {

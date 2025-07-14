@@ -1,4 +1,4 @@
-import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
+import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
 
 export function simulatedAnnealing(colors, selectCount, settings = {}) {
     console.log('Starting Simulated Annealing calculation...');
@@ -9,6 +9,9 @@ export function simulatedAnnealing(colors, selectCount, settings = {}) {
     const initialTemp = settings.initialTemp ?? 1000;
     const coolingRate = settings.coolingRate ?? 0.995;
     const minTemp = settings.minTemp ?? 0.1;
+    
+    // Use seeded PRNG if settings.seed is provided
+    const prng = typeof settings.seed === 'number' ? mulberry32(settings.seed) : Math.random;
     
     // Helper function to calculate minimum distance between selected colors
     function calculateFitness(selection) {
@@ -24,7 +27,7 @@ export function simulatedAnnealing(colors, selectCount, settings = {}) {
     
     // Generate initial solution
     let currentSolution = Array.from({length: colors.length}, (_, i) => i)
-        .sort(() => Math.random() - 0.5)
+        .sort(() => prng() - 0.5)
         .slice(0, selectCount);
     let currentFitness = calculateFitness(currentSolution);
     
@@ -37,17 +40,17 @@ export function simulatedAnnealing(colors, selectCount, settings = {}) {
     for (let i = 0; i < maxIterations && temperature > minTemp; i++) {
         // Generate neighbor by swapping one selected color with an unselected one
         const neighborSolution = [...currentSolution];
-        const swapIndex = Math.floor(Math.random() * selectCount);
+        const swapIndex = Math.floor(prng() * selectCount);
         const availableIndices = Array.from({length: colors.length}, (_, i) => i)
             .filter(i => !currentSolution.includes(i));
-        const newIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+        const newIndex = availableIndices[Math.floor(prng() * availableIndices.length)];
         neighborSolution[swapIndex] = newIndex;
         
         const neighborFitness = calculateFitness(neighborSolution);
         
         // Decide if we should accept the neighbor
         const delta = neighborFitness - currentFitness;
-        if (delta > 0 || Math.random() < Math.exp(delta / temperature)) {
+        if (delta > 0 || prng() < Math.exp(delta / temperature)) {
             currentSolution = neighborSolution;
             currentFitness = neighborFitness;
             

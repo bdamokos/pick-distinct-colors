@@ -1,4 +1,4 @@
-import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
+import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
 
 export function particleSwarmOptimization(colors, selectCount, settings = {}) {
     console.log('Starting Particle Swarm Optimization...');
@@ -10,6 +10,9 @@ export function particleSwarmOptimization(colors, selectCount, settings = {}) {
     const w = settings.inertiaWeight ?? 0.7;  // inertia weight
     const c1 = settings.cognitiveWeight ?? 1.5; // cognitive weight
     const c2 = settings.socialWeight ?? 1.5; // social weight
+    
+    // Use seeded PRNG if settings.seed is provided
+    const prng = typeof settings.seed === 'number' ? mulberry32(settings.seed) : Math.random;
     
     // Helper function to calculate minimum distance between selected colors
     function calculateFitness(selection) {
@@ -26,7 +29,7 @@ export function particleSwarmOptimization(colors, selectCount, settings = {}) {
     // Initialize particles
     const particles = Array(numParticles).fill().map(() => ({
         position: Array.from({length: colors.length}, (_, i) => i)
-            .sort(() => Math.random() - 0.5)
+            .sort(() => prng() - 0.5)
             .slice(0, selectCount),
         velocity: Array(selectCount).fill(0),
         bestPosition: null,
@@ -56,8 +59,8 @@ export function particleSwarmOptimization(colors, selectCount, settings = {}) {
             
             // Update velocity and position
             for (let i = 0; i < selectCount; i++) {
-                const r1 = Math.random();
-                const r2 = Math.random();
+                const r1 = prng();
+                const r2 = prng();
                 
                 particle.velocity[i] = Math.floor(
                     w * particle.velocity[i] +
@@ -70,7 +73,7 @@ export function particleSwarmOptimization(colors, selectCount, settings = {}) {
                     const available = Array.from({length: colors.length}, (_, i) => i)
                         .filter(j => !particle.position.includes(j));
                     if (available.length > 0) {
-                        const swapIndex = Math.floor(Math.random() * available.length);
+                        const swapIndex = Math.floor(prng() * available.length);
                         particle.position[i] = available[swapIndex];
                     }
                 }

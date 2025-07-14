@@ -1,4 +1,4 @@
-import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
+import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
 
 export function antColonyOptimization(colors, selectCount, settings = {}) {
     console.log('Starting Ant Colony Optimization...');
@@ -10,6 +10,9 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
     const evaporationRate = settings.evaporationRate ?? 0.1;
     const alpha = settings.pheromoneImportance ?? 1; // pheromone importance
     const beta = settings.heuristicImportance ?? 2;  // heuristic importance
+    
+    // Use seeded PRNG if settings.seed is provided
+    const prng = typeof settings.seed === 'number' ? mulberry32(settings.seed) : Math.random;
     
     // Initialize pheromone trails
     const pheromones = Array(colors.length).fill(1);
@@ -38,7 +41,7 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
             const solution = [];
             
             // Randomly select first color
-            const firstIndex = Math.floor(Math.random() * available.length);
+            const firstIndex = Math.floor(prng() * available.length);
             solution.push(available[firstIndex]);
             available.splice(firstIndex, 1);
             
@@ -54,7 +57,7 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
                 
                 // Select next color using roulette wheel selection
                 const total = probabilities.reduce((a, b) => a + b, 0);
-                let random = Math.random() * total;
+                let random = prng() * total;
                 let selectedIndex = 0;
                 
                 while (random > 0 && selectedIndex < probabilities.length) {

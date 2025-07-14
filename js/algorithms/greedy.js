@@ -1,12 +1,15 @@
-import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
+import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
 
-export function greedySelection(colors, selectCount) {
+export function greedySelection(colors, selectCount, seed) {
     console.log('Starting Greedy calculation...');
     const start = performance.now();
     
     const labColors = colors.map(rgb2lab);
     const selected = [];
     const available = Array.from({length: colors.length}, (_, i) => i);
+    
+    // Use seeded PRNG if seed is provided
+    const prng = typeof seed === 'number' ? mulberry32(seed) : Math.random;
     
     // Helper function to calculate minimum distance from a point to selected points
     function calculateMinDistance(index) {
@@ -17,7 +20,7 @@ export function greedySelection(colors, selectCount) {
     }
     
     // Select first point randomly
-    const firstIndex = Math.floor(Math.random() * available.length);
+    const firstIndex = Math.floor(prng() * available.length);
     selected.push(available[firstIndex]);
     available.splice(firstIndex, 1);
     

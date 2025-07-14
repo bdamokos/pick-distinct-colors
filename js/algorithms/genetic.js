@@ -1,4 +1,4 @@
-import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
+import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
 
 export function geneticAlgorithm(colors, selectCount, settings = {}) {
     console.log('Starting Genetic Algorithm calculation...');
@@ -8,6 +8,9 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
     const populationSize = settings.populationSize ?? 100;
     const generations = settings.generations ?? 100;
     const mutationRate = settings.mutationRate ?? 0.1;
+    
+    // Use seeded PRNG if settings.seed is provided
+    const prng = typeof settings.seed === 'number' ? mulberry32(settings.seed) : Math.random;
     
     // Helper function to calculate minimum distance between selected colors
     function calculateFitness(selection) {
@@ -24,7 +27,7 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
     // Generate initial population
     let population = Array(populationSize).fill().map(() => 
         Array.from({length: colors.length}, (_, i) => i)
-            .sort(() => Math.random() - 0.5)
+            .sort(() => prng() - 0.5)
             .slice(0, selectCount)
     );
     
@@ -48,8 +51,8 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
         
         while (newPopulation.length < populationSize) {
             // Tournament selection
-            const tournament1 = Array(3).fill().map(() => Math.floor(Math.random() * populationSize));
-            const tournament2 = Array(3).fill().map(() => Math.floor(Math.random() * populationSize));
+            const tournament1 = Array(3).fill().map(() => Math.floor(prng() * populationSize));
+            const tournament2 = Array(3).fill().map(() => Math.floor(prng() * populationSize));
             
             const parent1 = population[tournament1.reduce((a, b) => 
                 fitnesses[a] > fitnesses[b] ? a : b)];
@@ -57,7 +60,7 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
                 fitnesses[a] > fitnesses[b] ? a : b)];
             
             // Crossover
-            const crossoverPoint = Math.floor(Math.random() * selectCount);
+            const crossoverPoint = Math.floor(prng() * selectCount);
             const child = [...new Set([
                 ...parent1.slice(0, crossoverPoint),
                 ...parent2.slice(crossoverPoint)
@@ -67,15 +70,15 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
             while (child.length < selectCount) {
                 const available = Array.from({length: colors.length}, (_, i) => i)
                     .filter(i => !child.includes(i));
-                child.push(available[Math.floor(Math.random() * available.length)]);
+                child.push(available[Math.floor(prng() * available.length)]);
             }
             
             // Mutation
-            if (Math.random() < mutationRate) {
-                const mutationIndex = Math.floor(Math.random() * selectCount);
+            if (prng() < mutationRate) {
+                const mutationIndex = Math.floor(prng() * selectCount);
                 const available = Array.from({length: colors.length}, (_, i) => i)
                     .filter(i => !child.includes(i));
-                child[mutationIndex] = available[Math.floor(Math.random() * available.length)];
+                child[mutationIndex] = available[Math.floor(prng() * available.length)];
             }
             
             newPopulation.push(child);

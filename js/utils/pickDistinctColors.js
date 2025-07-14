@@ -73,28 +73,33 @@ export async function pickDistinctColors(args, algorithm, poolSize, colors, opti
     return await maxSumDistancesGlobal(pool, count);
   }
   if (_algorithm === 'maxSumDistancesSequential') {
-    return maxSumDistancesSequential(pool, count);
+    return maxSumDistancesSequential(pool, count, _seed);
   }
   if (_algorithm === 'greedy') {
-    return greedySelection(pool, count);
+    return greedySelection(pool, count, _seed);
   }
   if (_algorithm === 'kmeansppSelection') {
-    return kmeansppSelection(pool, count);
+    return kmeansppSelection(pool, count, _seed);
   }
   if (_algorithm === 'simulatedAnnealing') {
-    return simulatedAnnealing(pool, count, _options);
+    const opts = { ...(_options || {}), seed: _seed };
+    return simulatedAnnealing(pool, count, opts);
   }
   if (_algorithm === 'geneticAlgorithm') {
-    return geneticAlgorithm(pool, count, _options);
+    const opts = { ...(_options || {}), seed: _seed };
+    return geneticAlgorithm(pool, count, opts);
   }
   if (_algorithm === 'particleSwarmOptimization') {
-    return particleSwarmOptimization(pool, count, _options);
+    const opts = { ...(_options || {}), seed: _seed };
+    return particleSwarmOptimization(pool, count, opts);
   }
   if (_algorithm === 'antColonyOptimization') {
-    return antColonyOptimization(pool, count, _options);
+    const opts = { ...(_options || {}), seed: _seed };
+    return antColonyOptimization(pool, count, opts);
   }
   if (_algorithm === 'tabuSearch') {
-    return tabuSearch(pool, count, _options);
+    const opts = { ...(_options || {}), seed: _seed };
+    return tabuSearch(pool, count, opts);
   }
   if (_algorithm === 'exactMaximum') {
     return exactMaximum(pool, count);
@@ -103,7 +108,7 @@ export async function pickDistinctColors(args, algorithm, poolSize, colors, opti
     return exactMinimum(pool, count);
   }
   if (_algorithm === 'randomSelection') {
-    return randomSelection(pool, count);
+    return randomSelection(pool, count, _seed);
   }
   throw new Error(`Algorithm not implemented: ${_algorithm}`);
 } 
