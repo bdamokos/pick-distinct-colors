@@ -1,4 +1,4 @@
-import { randomColor } from './colorUtils.js';
+import { randomColor, mulberry32 } from './colorUtils.js';
 import { maxSumDistancesGlobal, maxSumDistancesSequential } from '../algorithms/maxSumDistances.js';
 import { greedySelection } from '../algorithms/greedy.js';
 import { kmeansppSelection } from '../algorithms/kmeans.js';
@@ -30,7 +30,7 @@ const ALGORITHMS = {
  * Pick a set of maximally distinct colors using the specified algorithm.
  *
  * Recommended usage (named arguments):
- *   pickDistinctColors({ count, algorithm, poolSize, colors, options })
+ *   pickDistinctColors({ count, algorithm, poolSize, colors, options, seed })
  *
  * @param {object|number} args - Either an options object or the count (legacy positional signature).
  * @param {number} args.count - Number of colors to select.
@@ -38,17 +38,19 @@ const ALGORITHMS = {
  * @param {number} [args.poolSize] - Number of random colors to generate if no pool is provided.
  * @param {number[][]} [args.colors] - Optional array of RGB colors to select from.
  * @param {object} [args.options] - Optional algorithm-specific options.
+ * @param {number} [args.seed=42] - Seed for deterministic random color generation.
  * @returns {Promise<{colors: number[][], time: number}>} Selected colors and execution time.
  */
-export async function pickDistinctColors(args, algorithm, poolSize, colors, options) {
+export async function pickDistinctColors(args, algorithm, poolSize, colors, options, seed) {
   // Support both: pickDistinctColors({ ... }) and pickDistinctColors(count, ...)
-  let count, _algorithm, _poolSize, _colors, _options;
+  let count, _algorithm, _poolSize, _colors, _options, _seed;
   if (typeof args === 'object' && args !== null && !Array.isArray(args)) {
     count = args.count;
     _algorithm = args.algorithm ?? 'greedy';
     _poolSize = args.poolSize;
     _colors = args.colors;
     _options = args.options;
+    _seed = args.seed ?? 42;
   } else {
     // Legacy positional signature
     count = args;
@@ -56,14 +58,16 @@ export async function pickDistinctColors(args, algorithm, poolSize, colors, opti
     _poolSize = poolSize;
     _colors = colors;
     _options = options;
+    _seed = seed ?? 42;
   }
   if (!ALGORITHMS[_algorithm]) {
     throw new Error(`Unknown algorithm: ${_algorithm}`);
   }
   let pool = _colors;
   if (!Array.isArray(pool) || pool.length === 0) {
-    const size = _poolSize || Math.min(count * 10, 20);
-    pool = Array.from({ length: size }, randomColor);
+    const size = _poolSize || Math.max(count * 10, 20);
+    const prng = mulberry32(_seed);
+    pool = Array.from({ length: size }, () => randomColor(prng));
   }
   if (_algorithm === 'maxSumDistancesGlobal') {
     return await maxSumDistancesGlobal(pool, count);

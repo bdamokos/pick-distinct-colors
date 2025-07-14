@@ -15,6 +15,11 @@ Simply copy the `pick_distinct_colors.py` file to your project directory. The im
 import pick_distinct_colors as pdc
 ```
 
+## Features
+
+- Unified `pick_distinct_colors` function for easy color selection with any algorithm
+- Deterministic color selection: pass a `seed` for reproducible results (default: 42)
+
 ## Unified API (Recommended)
 
 The Python version now supports a unified API for picking distinct colors, matching the JavaScript version. This is the recommended way to use the library for new code.
@@ -22,13 +27,13 @@ The Python version now supports a unified API for picking distinct colors, match
 ```python
 import pick_distinct_colors as pdc
 
-# Pick 8 maximally distinct colors using the default (greedy) algorithm:
-result = pdc.pick_distinct_colors({'count': 8})
+# Pick 8 maximally distinct colors using the default (greedy) algorithm and a fixed seed:
+result = pdc.pick_distinct_colors({'count': 8, 'seed': 12345})
 
-# Pick 10 colors using a specific algorithm and a custom pool size:
-result = pdc.pick_distinct_colors({'count': 10, 'algorithm': 'max_sum_global', 'pool_size': 100})
+# Pick 10 colors using a specific algorithm, custom pool size, and a seed:
+result = pdc.pick_distinct_colors({'count': 10, 'algorithm': 'max_sum_global', 'pool_size': 100, 'seed': 12345})
 
-# Pick 5 colors from a provided color pool using the genetic algorithm:
+# Pick 5 colors from a provided color pool using the genetic algorithm (seed is ignored if colors are provided):
 my_colors = [ (255,0,0), (0,255,0), (0,0,255), (255,255,0), (0,255,255), (255,0,255) ]
 result2 = pdc.pick_distinct_colors({'count': 5, 'algorithm': 'genetic_algorithm', 'colors': my_colors, 'options': {'populationSize': 50}})
 ```
@@ -39,6 +44,9 @@ result2 = pdc.pick_distinct_colors({'count': 5, 'algorithm': 'genetic_algorithm'
 - `pool_size` (int, optional): Number of random colors to generate if no pool is provided
 - `colors` (list, optional): List of RGB tuples to select from
 - `options` (dict, optional): Algorithm-specific options
+- `seed` (int, optional): Seed for deterministic random color generation (default: 42)
+
+> **Note:** If you use the same `count`, `algorithm`, `pool_size`, and `seed`, you will always get the same result. This makes color selection fully reproducible.
 
 Legacy positional usage is also supported:
 ```python

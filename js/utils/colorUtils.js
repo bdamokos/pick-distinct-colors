@@ -29,12 +29,28 @@ export function deltaE(labA, labB) {
     return Math.sqrt(deltaL * deltaL + deltaA * deltaA + deltaB * deltaB);
 }
 
-export function randomColor() {
-    return [
-        Math.floor(Math.random() * 256),
-        Math.floor(Math.random() * 256),
-        Math.floor(Math.random() * 256)
-    ];
+// Seedable PRNG (mulberry32)
+export function mulberry32(seed) {
+  let t = seed >>> 0;
+  return function() {
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ t >>> 15, 1 | t);
+    r ^= r + Math.imul(r ^ r >>> 7, 61 | r);
+    return ((r ^ r >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Generate a random RGB color using the provided PRNG.
+ * @param {function} [prng=Math.random] - Optional PRNG function.
+ * @returns {number[]} RGB color [r, g, b]
+ */
+export function randomColor(prng = Math.random) {
+  return [
+    Math.floor(prng() * 256),
+    Math.floor(prng() * 256),
+    Math.floor(prng() * 256)
+  ];
 }
 
 export function sortColors(colors) {

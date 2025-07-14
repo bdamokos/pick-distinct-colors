@@ -925,7 +925,7 @@ def select_distinct_colors(colors: List[Tuple[int, int, int]],
     return ALGORITHMS[algorithm](colors, select_count, settings)
 
 
-def pick_distinct_colors(args=None, algorithm=None, pool_size=None, colors=None, options=None):
+def pick_distinct_colors(args=None, algorithm=None, pool_size=None, colors=None, options=None, seed=None):
     """
     Unified API for picking maximally distinct colors (matches JS version).
 
@@ -935,11 +935,12 @@ def pick_distinct_colors(args=None, algorithm=None, pool_size=None, colors=None,
             'algorithm': 'greedy',
             'pool_size': 80,
             'colors': [(255,0,0), (0,255,0), ...],
-            'options': {...}
+            'options': {...},
+            'seed': 42
         })
 
     Legacy positional usage is also supported for backward compatibility:
-        pick_distinct_colors(8, 'greedy', 80, colors, options)
+        pick_distinct_colors(8, 'greedy', 80, colors, options, seed)
 
     Args:
         args (dict or int): Options dict or count (legacy)
@@ -947,6 +948,7 @@ def pick_distinct_colors(args=None, algorithm=None, pool_size=None, colors=None,
         pool_size (int): Pool size if generating random colors (legacy)
         colors (list): List of RGB tuples (legacy)
         options (dict): Algorithm-specific options (legacy)
+        seed (int): Seed for deterministic random color generation (default: 42)
 
     Returns:
         dict: {'colors': [...], 'time': ...}
@@ -958,18 +960,21 @@ def pick_distinct_colors(args=None, algorithm=None, pool_size=None, colors=None,
         _pool_size = args.get('pool_size')
         _colors = args.get('colors')
         _options = args.get('options')
+        _seed = args.get('seed', 42)
     else:
         count = args
         _algorithm = algorithm or 'greedy'
         _pool_size = pool_size
         _colors = colors
         _options = options
+        _seed = seed if seed is not None else 42
     if count is None:
         raise ValueError('count is required')
     # Prepare color pool
     pool = _colors
     if not pool:
-        size = _pool_size or min(count * 10, 20)
+        size = _pool_size or max(count * 10, 20)
+        random.seed(_seed)
         pool = generate_random_colors(size)
     # Call the correct algorithm
     if _algorithm == 'max_sum_global':

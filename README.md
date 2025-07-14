@@ -16,6 +16,7 @@ Check out the [live demo](https://bdamokos.github.io/color-distance/) to see the
 ## Features
 
 - Unified `pickDistinctColors` function for easy color selection with any algorithm
+- Deterministic color selection: pass a `seed` for reproducible results (default: 42)
 - Convert colors between RGB and Lab color spaces
 - Calculate deltaE (color difference) between colors
 - Analyze color distributions in Lab space
@@ -97,13 +98,13 @@ console.log(difference); // 128.3
 ```javascript
 import { pickDistinctColors } from 'pick-distinct-colors';
 
-// Pick 8 maximally distinct colors using the default (greedy) algorithm:
-const { colors, time } = await pickDistinctColors({ count: 8 });
+// Pick 8 maximally distinct colors using the default (greedy) algorithm and a fixed seed:
+const { colors, time } = await pickDistinctColors({ count: 8, seed: 12345 });
 
-// Pick 10 colors using a specific algorithm and a custom pool size:
-const result = await pickDistinctColors({ count: 10, algorithm: 'maxSumDistancesGlobal', poolSize: 100 });
+// Pick 10 colors using a specific algorithm, custom pool size, and a seed:
+const result = await pickDistinctColors({ count: 10, algorithm: 'maxSumDistancesGlobal', poolSize: 100, seed: 12345 });
 
-// Pick 5 colors from a provided color pool using the genetic algorithm:
+// Pick 5 colors from a provided color pool using the genetic algorithm (seed is ignored if colors are provided):
 const myColors = [ [255,0,0], [0,255,0], [0,0,255], [255,255,0], [0,255,255], [255,0,255] ];
 const result2 = await pickDistinctColors({ count: 5, algorithm: 'geneticAlgorithm', colors: myColors, options: { populationSize: 50 } });
 ```
@@ -114,6 +115,9 @@ const result2 = await pickDistinctColors({ count: 5, algorithm: 'geneticAlgorith
 - `poolSize` (number, optional): Number of random colors to generate if no pool is provided
 - `colors` (array, optional): Array of RGB colors to select from
 - `options` (object, optional): Algorithm-specific options
+- `seed` (number, optional): Seed for deterministic random color generation (default: 42)
+
+> **Note:** If you use the same `count`, `algorithm`, `poolSize`, and `seed`, you will always get the same result. This makes color selection fully reproducible.
 
 #### Legacy/Direct Algorithm Usage
 
