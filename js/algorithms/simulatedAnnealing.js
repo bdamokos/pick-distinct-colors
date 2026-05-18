@@ -1,18 +1,24 @@
 import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
+import {
+    SECURITY_LIMITS,
+    normalizePositiveInteger,
+    validateSelectionArgs
+} from '../utils/securityLimits.js';
 
 export function simulatedAnnealing(colors, selectCount, settings = {}) {
     console.log('Starting Simulated Annealing calculation...');
     const start = performance.now();
-    
+    validateSelectionArgs(colors, selectCount);
+
     const labColors = colors.map(rgb2lab);
-    const maxIterations = 10000;
+    const maxIterations = normalizePositiveInteger(settings.maxIterations ?? 1000, 'maxIterations', SECURITY_LIMITS.MAX_ITERATIONS);
     const initialTemp = settings.initialTemp ?? 1000;
     const coolingRate = settings.coolingRate ?? 0.995;
     const minTemp = settings.minTemp ?? 0.1;
-    
+
     // Use seeded PRNG if settings.seed is provided
     const prng = typeof settings.seed === 'number' ? mulberry32(settings.seed) : Math.random;
-    
+
     // Helper function to calculate minimum distance between selected colors
     function calculateFitness(selection) {
         let minDist = Infinity;
@@ -24,18 +30,18 @@ export function simulatedAnnealing(colors, selectCount, settings = {}) {
         }
         return minDist;
     }
-    
+
     // Generate initial solution
     let currentSolution = Array.from({length: colors.length}, (_, i) => i)
         .sort(() => prng() - 0.5)
         .slice(0, selectCount);
     let currentFitness = calculateFitness(currentSolution);
-    
+
     let bestSolution = [...currentSolution];
     let bestFitness = currentFitness;
-    
+
     let temperature = initialTemp;
-    
+
     // Main loop
     for (let i = 0; i < maxIterations && temperature > minTemp; i++) {
         // Generate neighbor by swapping one selected color with an unselected one
@@ -45,26 +51,26 @@ export function simulatedAnnealing(colors, selectCount, settings = {}) {
             .filter(i => !currentSolution.includes(i));
         const newIndex = availableIndices[Math.floor(prng() * availableIndices.length)];
         neighborSolution[swapIndex] = newIndex;
-        
+
         const neighborFitness = calculateFitness(neighborSolution);
-        
+
         // Decide if we should accept the neighbor
         const delta = neighborFitness - currentFitness;
         if (delta > 0 || prng() < Math.exp(delta / temperature)) {
             currentSolution = neighborSolution;
             currentFitness = neighborFitness;
-            
+
             if (currentFitness > bestFitness) {
                 bestSolution = [...currentSolution];
                 bestFitness = currentFitness;
             }
         }
-        
+
         temperature *= coolingRate;
     }
-    
+
     return {
         colors: sortColors(bestSolution.map(i => colors[i])),
         time: performance.now() - start
     };
-} 
+}

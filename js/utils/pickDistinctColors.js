@@ -10,6 +10,11 @@ import { tabuSearch } from '../algorithms/tabu.js';
 import { exactMaximum } from '../algorithms/exactMaximum.js';
 import { exactMinimum } from '../algorithms/exactMinimum.js';
 import { randomSelection } from '../algorithms/random.js';
+import {
+  SECURITY_LIMITS,
+  normalizePositiveInteger,
+  validateColorPool,
+} from './securityLimits.js';
 
 const ALGORITHMS = {
   greedy: greedySelection,
@@ -63,11 +68,21 @@ export async function pickDistinctColors(args, algorithm, poolSize, colors, opti
   if (!ALGORITHMS[_algorithm]) {
     throw new Error(`Unknown algorithm: ${_algorithm}`);
   }
+  count = normalizePositiveInteger(count, 'count', SECURITY_LIMITS.MAX_SELECT_COUNT);
   let pool = _colors;
   if (!Array.isArray(pool) || pool.length === 0) {
-    const size = _poolSize || Math.max(count * 16, 128);
+    const defaultSize = _algorithm === 'exactMaximum' || _algorithm === 'exactMinimum'
+      ? Math.max(count * 4, 20)
+      : Math.min(Math.max(count * 16, 128), SECURITY_LIMITS.MAX_GENERATED_POOL_SIZE);
+    const size = _poolSize === undefined
+      ? defaultSize
+      : normalizePositiveInteger(_poolSize, 'poolSize', SECURITY_LIMITS.MAX_GENERATED_POOL_SIZE);
     const prng = mulberry32(_seed);
     pool = Array.from({ length: size }, () => randomColor(prng));
+  }
+  validateColorPool(pool);
+  if (count > pool.length) {
+    throw new RangeError('count cannot be greater than the number of colors in the pool');
   }
   if (_algorithm === 'maxSumDistancesGlobal') {
     return await maxSumDistancesGlobal(pool, count);
@@ -111,4 +126,4 @@ export async function pickDistinctColors(args, algorithm, poolSize, colors, opti
     return randomSelection(pool, count, _seed);
   }
   throw new Error(`Algorithm not implemented: ${_algorithm}`);
-} 
+}

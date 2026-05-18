@@ -1,19 +1,25 @@
 import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
+import {
+    SECURITY_LIMITS,
+    normalizePositiveInteger,
+    validateSelectionArgs
+} from '../utils/securityLimits.js';
 
 export function particleSwarmOptimization(colors, selectCount, settings = {}) {
     console.log('Starting Particle Swarm Optimization...');
     const start = performance.now();
-    
+    validateSelectionArgs(colors, selectCount);
+
     const labColors = colors.map(rgb2lab);
-    const numParticles = settings.numParticles ?? 30;
-    const maxIterations = settings.psoIterations ?? 100;
+    const numParticles = normalizePositiveInteger(settings.numParticles ?? 30, 'numParticles', SECURITY_LIMITS.MAX_PARTICLES);
+    const maxIterations = normalizePositiveInteger(settings.psoIterations ?? settings.iterations ?? 100, 'psoIterations', SECURITY_LIMITS.MAX_ITERATIONS);
     const w = settings.inertiaWeight ?? 0.7;  // inertia weight
     const c1 = settings.cognitiveWeight ?? 1.5; // cognitive weight
     const c2 = settings.socialWeight ?? 1.5; // social weight
-    
+
     // Use seeded PRNG if settings.seed is provided
     const prng = typeof settings.seed === 'number' ? mulberry32(settings.seed) : Math.random;
-    
+
     // Helper function to calculate minimum distance between selected colors
     function calculateFitness(selection) {
         let minDist = Infinity;
@@ -25,7 +31,7 @@ export function particleSwarmOptimization(colors, selectCount, settings = {}) {
         }
         return minDist;
     }
-    
+
     // Initialize particles
     const particles = Array(numParticles).fill().map(() => ({
         position: Array.from({length: colors.length}, (_, i) => i)
@@ -35,39 +41,39 @@ export function particleSwarmOptimization(colors, selectCount, settings = {}) {
         bestPosition: null,
         bestFitness: -Infinity
     }));
-    
+
     let globalBestPosition = null;
     let globalBestFitness = -Infinity;
-    
+
     // Main loop
     for (let iteration = 0; iteration < maxIterations; iteration++) {
         for (const particle of particles) {
             // Calculate fitness
             const fitness = calculateFitness(particle.position);
-            
+
             // Update particle's best
             if (fitness > particle.bestFitness) {
                 particle.bestPosition = [...particle.position];
                 particle.bestFitness = fitness;
-                
+
                 // Update global best
                 if (fitness > globalBestFitness) {
                     globalBestPosition = [...particle.position];
                     globalBestFitness = fitness;
                 }
             }
-            
+
             // Update velocity and position
             for (let i = 0; i < selectCount; i++) {
                 const r1 = prng();
                 const r2 = prng();
-                
+
                 particle.velocity[i] = Math.floor(
                     w * particle.velocity[i] +
                     c1 * r1 * (particle.bestPosition[i] - particle.position[i]) +
                     c2 * r2 * (globalBestPosition[i] - particle.position[i])
                 );
-                
+
                 // Apply velocity (swap with another color)
                 if (particle.velocity[i] !== 0) {
                     const available = Array.from({length: colors.length}, (_, i) => i)
@@ -80,9 +86,9 @@ export function particleSwarmOptimization(colors, selectCount, settings = {}) {
             }
         }
     }
-    
+
     return {
         colors: sortColors(globalBestPosition.map(i => colors[i])),
         time: performance.now() - start
     };
-} 
+}

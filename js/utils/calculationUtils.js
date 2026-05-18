@@ -17,12 +17,12 @@ function escapeHtml(unsafe) {
 export async function startCalculation() {
     console.log('Starting calculation...');
     const selectColors = parseInt(document.getElementById('selectColors').value);
-    
+
     if (!window.initialColors || window.initialColors.length === 0) {
         alert('Please generate initial colors first');
         return;
     }
-    
+
     if (selectColors > window.initialColors.length) {
         alert('Number of colors to select cannot be greater than total colors');
         return;
@@ -31,7 +31,7 @@ export async function startCalculation() {
     // Clear only the algorithm results, not the initial colors section
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = '';
-    
+
     // Remove any existing rankings
     const existingRankings = document.querySelector('.algorithm-section[data-type="summary"]');
     if (existingRankings) {
@@ -48,12 +48,12 @@ export async function startCalculation() {
                 .split('-')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
-            
+
             switch(algorithmName) {
-                case 'Maximum Sum Global':  
+                case 'Maximum Sum Global':
                     selectedAlgorithms[algorithmName] = () => window.algorithms.maxSumDistancesGlobal(window.initialColors, selectColors);
                     break;
-                case 'Maximum Sum Sequential':  
+                case 'Maximum Sum Sequential':
                     selectedAlgorithms[algorithmName] = () => window.algorithms.maxSumDistancesSequential(window.initialColors, selectColors);
                     break;
                 case 'Greedy':
@@ -79,18 +79,18 @@ export async function startCalculation() {
                 case 'Particle Swarm':
                     selectedAlgorithms[algorithmName] = () => window.algorithms.particleSwarmOptimization(window.initialColors, selectColors, {
                         numParticles: parseInt(document.getElementById('numParticles').value),
-                        iterations: parseInt(document.getElementById('psoIterations').value)
+                        psoIterations: parseInt(document.getElementById('psoIterations').value)
                     });
                     break;
                 case 'Ant Colony':
                     selectedAlgorithms[algorithmName] = () => window.algorithms.antColonyOptimization(window.initialColors, selectColors, {
                         numAnts: parseInt(document.getElementById('numAnts').value),
-                        iterations: parseInt(document.getElementById('acoIterations').value)
+                        acoIterations: parseInt(document.getElementById('acoIterations').value)
                     });
                     break;
                 case 'Tabu Search':
                     selectedAlgorithms[algorithmName] = () => window.algorithms.tabuSearch(window.initialColors, selectColors, {
-                        maxIterations: parseInt(document.getElementById('tabuIterations').value),
+                        tabuIterations: parseInt(document.getElementById('tabuIterations').value),
                         tabuTenure: parseInt(document.getElementById('tabuTenure').value)
                     });
                     break;
@@ -106,15 +106,15 @@ export async function startCalculation() {
         showSpinner(`Running ${name} algorithm...`);
         // Allow spinner to render
         await new Promise(resolve => setTimeout(resolve, 0));
-        
+
         try {
             const result = await Promise.resolve(algorithm());
             hideSpinner();
-            
+
             const metrics = calculateMetrics(result.colors);
             const distribution = analyzeColorDistribution(result.colors);
             const plotId = `plot-${name.toLowerCase().replace(/\s+/g, '-')}`;
-            
+
             const algorithmContainer = document.createElement('div');
             algorithmContainer.className = 'algorithm-section';
             algorithmContainer.innerHTML = `
@@ -126,7 +126,7 @@ export async function startCalculation() {
                     </details>
                 </div>
                 <div class="swatch-container">
-                    ${result.colors.map(rgb => 
+                    ${result.colors.map(rgb =>
                         `<div class="swatch" style="background-color: ${rgbToHex(rgb)}"></div>`
                     ).join('')}
                 </div>
@@ -137,7 +137,7 @@ export async function startCalculation() {
                         <span>Closest pair: </span>
                         ${(() => {
                             const closest = findClosestPair(result.colors);
-                            return closest.colors.map(rgb => 
+                            return closest.colors.map(rgb =>
                                 `<div class="swatch" style="background-color: ${rgbToHex(rgb)}; margin: 0 5px;"></div>`
                             ).join('');
                         })()}
@@ -148,13 +148,13 @@ export async function startCalculation() {
                 </div>
                 <div id="${plotId}" style="width:600px;height:400px;"></div>
             `;
-            
+
             document.getElementById('results').appendChild(algorithmContainer);
             createSpectrumPlot(result.colors, plotId);
-            
+
             // Update rankings after each algorithm completes
             updateRankings();
-            
+
         } catch (error) {
             hideSpinner();
             console.error(`Error in ${name} algorithm:`, error);
@@ -191,21 +191,21 @@ export function updateRankings() {
     const allResults = [];
     document.querySelectorAll('.algorithm-section').forEach(section => {
         if (section.getAttribute('data-type') === 'summary') return;
-        
+
         const titleElement = section.querySelector('h2');
         if (titleElement) {
             // Get only the text content before any child elements
             const algorithmName = titleElement.childNodes[0].textContent.trim();
             const metricsText = Array.from(section.querySelectorAll('p'));
-            
+
             // Extract minimum deltaE
             const deltaEText = metricsText.find(p => p.textContent.includes('Minimum deltaE'))?.textContent || '';
             const minDeltaE = parseFloat(deltaEText.split(':')[1]) || 0;
-            
+
             // Extract execution time
             const timeText = metricsText.find(p => p.textContent.includes('Execution time'))?.textContent || '';
             const executionTime = timeText.split(':')[1]?.trim() || 'N/A';
-            
+
             // Extract RGB values from the color swatches
             const colors = Array.from(section.querySelectorAll('.swatch'))
                 .slice(0, parseInt(document.getElementById('selectColors').value))
@@ -214,7 +214,7 @@ export function updateRankings() {
                     const rgb = style.backgroundColor.match(/\d+/g).map(Number);
                     return rgb;
                 });
-            
+
             if (colors.length > 0) {
                 allResults.push({
                     name: escapeHtml(algorithmName),
@@ -252,7 +252,7 @@ export function updateRankings() {
                 ${allResults.map(result => {
                     const deltaEString = result.minDeltaE.toFixed(2);
                     const paddedDeltaE = deltaEString.length < 5 ? ' ' + deltaEString : deltaEString;
-                    
+
                     return `
                         <div style="display: flex; align-items: center; margin: 10px 0;">
                             <div style="width: 30px; font-weight: bold;">#${result.rank}</div>
@@ -261,11 +261,11 @@ export function updateRankings() {
                             <div style="margin-right: 20px; width: 120px;">Time: ${result.executionTime}</div>
                             <div style="display: flex; align-items: center;">
                                 <div class="swatch-container">
-                                    ${result.colors.map(rgb => 
+                                    ${result.colors.map(rgb =>
                                         `<div class="swatch" style="background-color: rgb(${rgb.join(',')}"></div>`
                                     ).join('')}
                                 </div>
-                                <button onclick="window.showExportModal(${JSON.stringify(result.colors)})" 
+                                <button onclick="window.showExportModal(${JSON.stringify(result.colors)})"
                                         style="background: none; border: none; cursor: pointer; padding: 5px; margin-left: 10px;"
                                         title="Export these colors">
                                     📋
@@ -279,4 +279,4 @@ export function updateRankings() {
 
         summaryContainer.innerHTML = summaryHTML;
     }
-} 
+}

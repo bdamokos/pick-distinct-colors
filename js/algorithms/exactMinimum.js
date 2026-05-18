@@ -1,13 +1,15 @@
 import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
+import { validateExactSelectionArgs } from '../utils/securityLimits.js';
 
 export function exactMinimum(colors, selectCount) {
     console.log('Starting Exact Minimum calculation...');
     const start = performance.now();
-    
+    validateExactSelectionArgs(colors, selectCount);
+
     const labColors = colors.map(rgb2lab);
     let bestSelection = null;
     let bestMinDistance = -Infinity;
-    
+
     // Helper function to calculate minimum distance between selected colors
     function calculateMinDistance(selection) {
         let minDist = Infinity;
@@ -19,7 +21,7 @@ export function exactMinimum(colors, selectCount) {
         }
         return minDist;
     }
-    
+
     // Generate all possible combinations
     function* combinations(arr, r) {
         if (r === 1) {
@@ -28,7 +30,7 @@ export function exactMinimum(colors, selectCount) {
             }
             return;
         }
-        
+
         for (let i = 0; i < arr.length - r + 1; i++) {
             const head = arr[i];
             const remaining = arr.slice(i + 1);
@@ -37,7 +39,7 @@ export function exactMinimum(colors, selectCount) {
             }
         }
     }
-    
+
     // Try all combinations
     const indices = Array.from({length: colors.length}, (_, i) => i);
     for (const selection of combinations(indices, selectCount)) {
@@ -47,9 +49,9 @@ export function exactMinimum(colors, selectCount) {
             bestSelection = selection;
         }
     }
-    
+
     return {
         colors: sortColors(bestSelection.map(i => colors[i])),
         time: performance.now() - start
     };
-} 
+}

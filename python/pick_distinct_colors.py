@@ -13,6 +13,83 @@ from typing import List, Tuple, Dict, Any, Optional
 
 __version__ = '0.2.2'
 
+MAX_GENERATED_POOL_SIZE = 1024
+MAX_COLOR_POOL_SIZE = 4096
+MAX_SELECT_COUNT = 256
+MAX_EXACT_COMBINATIONS = 1_000_000
+MAX_PAIRWISE_COLORS = 1024
+MAX_POPULATION_SIZE = 500
+MAX_GENERATIONS = 1000
+MAX_PARTICLES = 200
+MAX_ANTS = 200
+MAX_ITERATIONS = 2000
+
+
+def _normalize_positive_int(value: Any, name: str, maximum: int) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        raise ValueError(f"{name} must be a positive integer")
+    if value > maximum:
+        raise ValueError(f"{name} must be less than or equal to {maximum}")
+    return value
+
+
+def _validate_rgb_color(color: Any) -> Tuple[int, int, int]:
+    if not isinstance(color, (list, tuple)) or len(color) != 3:
+        raise ValueError("each color must be an RGB triple")
+    rgb = tuple(color)
+    if not all(isinstance(component, int) and not isinstance(component, bool) and 0 <= component <= 255 for component in rgb):
+        raise ValueError("RGB components must be integers between 0 and 255")
+    return rgb
+
+
+def _validate_color_pool(colors: List[Tuple[int, int, int]], max_colors: int = MAX_COLOR_POOL_SIZE) -> List[Tuple[int, int, int]]:
+    if not isinstance(colors, (list, tuple)) or not colors:
+        raise ValueError("colors must be a non-empty list of RGB triples")
+    if len(colors) > max_colors:
+        raise ValueError(f"colors must contain no more than {max_colors} entries")
+    return [_validate_rgb_color(color) for color in colors]
+
+
+def _validate_selection_args(
+    colors: List[Tuple[int, int, int]],
+    select_count: int,
+    max_colors: int = MAX_COLOR_POOL_SIZE
+) -> Tuple[List[Tuple[int, int, int]], int]:
+    validated_colors = _validate_color_pool(colors, max_colors)
+    select_count = _normalize_positive_int(select_count, "select_count", MAX_SELECT_COUNT)
+    if select_count > len(validated_colors):
+        raise ValueError("Cannot select more colors than available")
+    return validated_colors, select_count
+
+
+def _combinations_exceed_limit(n: int, k: int, limit: int) -> bool:
+    if k < 0 or k > n:
+        return False
+    r = min(k, n - k)
+    total = 1
+    for i in range(1, r + 1):
+        total = total * (n - r + i) // i
+        if total > limit:
+            return True
+    return False
+
+
+def _validate_exact_selection_args(
+    colors: List[Tuple[int, int, int]],
+    select_count: int
+) -> Tuple[List[Tuple[int, int, int]], int]:
+    colors, select_count = _validate_selection_args(colors, select_count)
+    if _combinations_exceed_limit(len(colors), select_count, MAX_EXACT_COMBINATIONS):
+        raise ValueError(f"exact algorithms are limited to {MAX_EXACT_COMBINATIONS} combinations")
+    return colors, select_count
+
+
+def _validate_pairwise_selection_args(
+    colors: List[Tuple[int, int, int]],
+    select_count: int
+) -> Tuple[List[Tuple[int, int, int]], int]:
+    return _validate_selection_args(colors, select_count, MAX_PAIRWISE_COLORS)
+
 
 def rgb_to_lab(rgb: Tuple[int, int, int]) -> Tuple[float, float, float]:
     """Convert RGB color to CIELAB color space."""
@@ -226,9 +303,9 @@ def parse_color_list(color_text: str) -> List[Tuple[int, int, int]]:
             if isinstance(parsed, list):
                 for item in parsed:
                     if isinstance(item, list) and len(item) == 3:
-                        colors.append(tuple(int(v) for v in item))
+                        colors.append(_validate_rgb_color(item))
                 return colors
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError:
             pass
         
         # Try parsing as JavaScript array (without JSON)
@@ -239,10 +316,12 @@ def parse_color_list(color_text: str) -> List[Tuple[int, int, int]]:
             import re
             matches = re.findall(r'\[(\d+),\s*(\d+),\s*(\d+)\]', inner)
             for match in matches:
-                colors.append(tuple(int(v) for v in match))
+                colors.append(_validate_rgb_color(tuple(int(v) for v in match)))
             if colors:
                 return colors
-        except:
+        except ValueError:
+            raise
+        except Exception:
             pass
     
     # Parse line by line
@@ -266,6 +345,7 @@ def greedy_selection(colors: List[Tuple[int, int, int]], select_count: int, sett
     """
     if settings is None:
         settings = {}
+    colors, select_count = _validate_selection_args(colors, select_count)
     prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
@@ -306,6 +386,7 @@ def max_sum_distances_global(colors: List[Tuple[int, int, int]], select_count: i
     """
     Select colors with highest total distances to all other colors.
     """
+    colors, select_count = _validate_pairwise_selection_args(colors, select_count)
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     
@@ -333,6 +414,7 @@ def max_sum_distances_sequential(colors: List[Tuple[int, int, int]], select_coun
     """
     if settings is None:
         settings = {}
+    colors, select_count = _validate_selection_args(colors, select_count)
     prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
@@ -372,10 +454,11 @@ def simulated_annealing(colors: List[Tuple[int, int, int]], select_count: int, s
     """
     if settings is None:
         settings = {}
+    colors, select_count = _validate_selection_args(colors, select_count)
     prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
-    max_iterations = 10000
+    max_iterations = _normalize_positive_int(settings.get('maxIterations', 1000), 'maxIterations', MAX_ITERATIONS)
     initial_temp = settings.get('initialTemp', 1000)
     cooling_rate = settings.get('coolingRate', 0.995)
     min_temp = settings.get('minTemp', 0.1)
@@ -436,6 +519,7 @@ def kmeans_plus_plus_selection(colors: List[Tuple[int, int, int]], select_count:
     """
     if settings is None:
         settings = {}
+    colors, select_count = _validate_selection_args(colors, select_count)
     prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
@@ -488,11 +572,12 @@ def genetic_algorithm(colors: List[Tuple[int, int, int]], select_count: int, set
     """
     if settings is None:
         settings = {}
+    colors, select_count = _validate_selection_args(colors, select_count)
     prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
-    population_size = settings.get('populationSize', 100)
-    generations = settings.get('generations', 100)
+    population_size = _normalize_positive_int(settings.get('populationSize', 100), 'populationSize', MAX_POPULATION_SIZE)
+    generations = _normalize_positive_int(settings.get('generations', 100), 'generations', MAX_GENERATIONS)
     mutation_rate = settings.get('mutationRate', 0.1)
     
     def calculate_fitness(selection: List[int]) -> float:
@@ -572,11 +657,12 @@ def particle_swarm_optimization(colors: List[Tuple[int, int, int]], select_count
     """
     if settings is None:
         settings = {}
+    colors, select_count = _validate_selection_args(colors, select_count)
     prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
-    num_particles = settings.get('numParticles', 30)
-    max_iterations = settings.get('iterations', 100)
+    num_particles = _normalize_positive_int(settings.get('numParticles', 30), 'numParticles', MAX_PARTICLES)
+    max_iterations = _normalize_positive_int(settings.get('iterations', settings.get('psoIterations', 100)), 'iterations', MAX_ITERATIONS)
     w = settings.get('inertiaWeight', 0.7)
     c1 = settings.get('cognitiveWeight', 1.5)
     c2 = settings.get('socialWeight', 1.5)
@@ -650,11 +736,12 @@ def ant_colony_optimization(colors: List[Tuple[int, int, int]], select_count: in
     """
     if settings is None:
         settings = {}
+    colors, select_count = _validate_pairwise_selection_args(colors, select_count)
     prng = random.Random(settings["seed"]) if "seed" in settings else random
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
-    num_ants = settings.get('numAnts', 20)
-    max_iterations = settings.get('acoIterations', 100)
+    num_ants = _normalize_positive_int(settings.get('numAnts', 20), 'numAnts', MAX_ANTS)
+    max_iterations = _normalize_positive_int(settings.get('acoIterations', settings.get('iterations', 100)), 'acoIterations', MAX_ITERATIONS)
     evaporation_rate = settings.get('evaporationRate', 0.1)
     alpha = settings.get('pheromoneImportance', 1)
     beta = settings.get('heuristicImportance', 2)
@@ -755,11 +842,12 @@ def tabu_search(colors: List[Tuple[int, int, int]], select_count: int,
     """
     if settings is None:
         settings = {}
+    colors, select_count = _validate_selection_args(colors, select_count)
     
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
-    max_iterations = settings.get('maxIterations', 1000)
-    tabu_tenure = settings.get('tabuTenure', 5)
+    max_iterations = _normalize_positive_int(settings.get('maxIterations', settings.get('tabuIterations', 1000)), 'maxIterations', MAX_ITERATIONS)
+    tabu_tenure = _normalize_positive_int(settings.get('tabuTenure', 5), 'tabuTenure', MAX_ITERATIONS)
     
     def calculate_fitness(selection: List[int]) -> float:
         min_dist = float('inf')
@@ -836,6 +924,7 @@ def exact_minimum(colors: List[Tuple[int, int, int]], select_count: int,
     Exact algorithm that tries all possible combinations to find the optimal solution.
     WARNING: This has exponential time complexity and should only be used for small datasets.
     """
+    colors, select_count = _validate_exact_selection_args(colors, select_count)
     start_time = time.time()
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     
@@ -896,8 +985,14 @@ def generate_n_colors(n: int, algorithm: str = 'greedy',
     Returns:
         Dictionary with 'colors' and 'time' keys
     """
-    # Generate n*10 random colors to select from
-    pool_size = max(n * 10, 20)  # At least 20 colors in the pool
+    n = _normalize_positive_int(n, "n", MAX_SELECT_COUNT)
+    if algorithm not in ALGORITHMS:
+        raise ValueError(f"Unknown algorithm: {algorithm}. Available: {list(ALGORITHMS.keys())}")
+
+    # Generate a bounded pool to keep convenience calls safe for API wrappers.
+    pool_size = min(max(n * 16, 128), MAX_GENERATED_POOL_SIZE)
+    if algorithm == 'exact_minimum':
+        pool_size = max(n * 4, 20)
     color_pool = generate_random_colors(pool_size)
     
     # Select the n most distinct colors
@@ -922,10 +1017,8 @@ def select_distinct_colors(colors: List[Tuple[int, int, int]],
     """
     if algorithm not in ALGORITHMS:
         raise ValueError(f"Unknown algorithm: {algorithm}. Available: {list(ALGORITHMS.keys())}")
-    
-    if select_count > len(colors):
-        raise ValueError("Cannot select more colors than available")
-    
+
+    colors, select_count = _validate_selection_args(colors, select_count)
     return ALGORITHMS[algorithm](colors, select_count, settings)
 
 
@@ -974,31 +1067,17 @@ def pick_distinct_colors(args=None, algorithm=None, pool_size=None, colors=None,
         _seed = seed if seed is not None else 42
     if count is None:
         raise ValueError('count is required')
+    count = _normalize_positive_int(count, 'count', MAX_SELECT_COUNT)
+    if _algorithm not in ALGORITHMS:
+        raise ValueError(f"Unknown algorithm: {_algorithm}. Available: {list(ALGORITHMS.keys())}")
     # Prepare color pool
     pool = _colors
     if not pool:
-        size = _pool_size or max(count * 16, 128)
-        random.seed(_seed)
-        pool = generate_random_colors(size)
-    # Call the correct algorithm
-    if _algorithm == 'max_sum_global':
-        return max_sum_distances_global(pool, count)
-    if _algorithm == 'max_sum_sequential':
-        return max_sum_distances_sequential(pool, count)
-    if _algorithm == 'greedy':
-        return greedy_selection(pool, count)
-    if _algorithm == 'kmeans_plus_plus':
-        return kmeans_plus_plus_selection(pool, count)
-    if _algorithm == 'simulated_annealing':
-        return simulated_annealing(pool, count, _options)
-    if _algorithm == 'genetic_algorithm':
-        return genetic_algorithm(pool, count, _options)
-    if _algorithm == 'particle_swarm':
-        return particle_swarm_optimization(pool, count, _options)
-    if _algorithm == 'ant_colony':
-        return ant_colony_optimization(pool, count, _options)
-    if _algorithm == 'tabu_search':
-        return tabu_search(pool, count, _options)
-    if _algorithm == 'exact_minimum':
-        return exact_minimum(pool, count)
-    raise ValueError(f"Unknown algorithm: {_algorithm}")
+        if _pool_size is None:
+            size = max(count * 4, 20) if _algorithm == 'exact_minimum' else min(max(count * 16, 128), MAX_GENERATED_POOL_SIZE)
+        else:
+            size = _normalize_positive_int(_pool_size, 'pool_size', MAX_GENERATED_POOL_SIZE)
+        prng = random.Random(_seed)
+        pool = [(prng.randint(0, 255), prng.randint(0, 255), prng.randint(0, 255)) for _ in range(size)]
+    pool, count = _validate_selection_args(list(pool), count)
+    return ALGORITHMS[_algorithm](pool, count, _options)
