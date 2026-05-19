@@ -2,7 +2,8 @@ import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js'
 import {
     SECURITY_LIMITS,
     normalizePositiveInteger,
-    validateSelectionArgs
+    validateSelectionArgs,
+    validateWorkUnits
 } from '../utils/securityLimits.js';
 
 export function particleSwarmOptimization(colors, selectCount, settings = {}) {
@@ -13,6 +14,7 @@ export function particleSwarmOptimization(colors, selectCount, settings = {}) {
     const labColors = colors.map(rgb2lab);
     const numParticles = normalizePositiveInteger(settings.numParticles ?? 30, 'numParticles', SECURITY_LIMITS.MAX_PARTICLES);
     const maxIterations = normalizePositiveInteger(settings.psoIterations ?? settings.iterations ?? 100, 'psoIterations', SECURITY_LIMITS.MAX_ITERATIONS);
+    validateWorkUnits('particleSwarmOptimization', [numParticles, maxIterations, selectCount]);
     const w = settings.inertiaWeight ?? 0.7;  // inertia weight
     const c1 = settings.cognitiveWeight ?? 1.5; // cognitive weight
     const c2 = settings.socialWeight ?? 1.5; // social weight

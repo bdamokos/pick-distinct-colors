@@ -2,7 +2,8 @@ import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js'
 import {
     SECURITY_LIMITS,
     normalizePositiveInteger,
-    validateSelectionArgs
+    validateSelectionArgs,
+    validateWorkUnits
 } from '../utils/securityLimits.js';
 
 export function simulatedAnnealing(colors, selectCount, settings = {}) {
@@ -12,6 +13,7 @@ export function simulatedAnnealing(colors, selectCount, settings = {}) {
 
     const labColors = colors.map(rgb2lab);
     const maxIterations = normalizePositiveInteger(settings.maxIterations ?? 1000, 'maxIterations', SECURITY_LIMITS.MAX_ITERATIONS);
+    validateWorkUnits('simulatedAnnealing', [maxIterations, selectCount, selectCount]);
     const initialTemp = settings.initialTemp ?? 1000;
     const coolingRate = settings.coolingRate ?? 0.995;
     const minTemp = settings.minTemp ?? 0.1;

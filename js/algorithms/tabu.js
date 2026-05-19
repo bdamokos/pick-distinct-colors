@@ -2,7 +2,8 @@ import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
 import {
     SECURITY_LIMITS,
     normalizePositiveInteger,
-    validateSelectionArgs
+    validateSelectionArgs,
+    validateWorkUnits
 } from '../utils/securityLimits.js';
 
 export function tabuSearch(colors, selectCount, settings = {}) {
@@ -13,6 +14,7 @@ export function tabuSearch(colors, selectCount, settings = {}) {
     const labColors = colors.map(rgb2lab);
     const maxIterations = normalizePositiveInteger(settings.tabuIterations ?? settings.maxIterations ?? 1000, 'tabuIterations', SECURITY_LIMITS.MAX_ITERATIONS);
     const tabuTenure = normalizePositiveInteger(settings.tabuTenure ?? 5, 'tabuTenure', SECURITY_LIMITS.MAX_ITERATIONS);
+    validateWorkUnits('tabuSearch', [maxIterations, selectCount, colors.length]);
 
     // Helper function to calculate minimum distance between selected colors
     function calculateFitness(selection) {

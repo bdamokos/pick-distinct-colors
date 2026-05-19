@@ -2,7 +2,8 @@ import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js'
 import {
     SECURITY_LIMITS,
     normalizePositiveInteger,
-    validatePairwiseSelectionArgs
+    validatePairwiseSelectionArgs,
+    validateWorkUnits
 } from '../utils/securityLimits.js';
 
 export function antColonyOptimization(colors, selectCount, settings = {}) {
@@ -13,6 +14,7 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
     const labColors = colors.map(rgb2lab);
     const numAnts = normalizePositiveInteger(settings.numAnts ?? 20, 'numAnts', SECURITY_LIMITS.MAX_ANTS);
     const maxIterations = normalizePositiveInteger(settings.acoIterations ?? settings.iterations ?? 100, 'acoIterations', SECURITY_LIMITS.MAX_ITERATIONS);
+    validateWorkUnits('antColonyOptimization', [maxIterations, numAnts, selectCount, colors.length]);
     const evaporationRate = settings.evaporationRate ?? 0.1;
     const alpha = settings.pheromoneImportance ?? 1; // pheromone importance
     const beta = settings.heuristicImportance ?? 2;  // heuristic importance

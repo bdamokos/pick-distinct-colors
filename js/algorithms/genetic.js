@@ -2,7 +2,8 @@ import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js'
 import {
     SECURITY_LIMITS,
     normalizePositiveInteger,
-    validateSelectionArgs
+    validateSelectionArgs,
+    validateWorkUnits
 } from '../utils/securityLimits.js';
 
 export function geneticAlgorithm(colors, selectCount, settings = {}) {
@@ -13,6 +14,7 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
     const labColors = colors.map(rgb2lab);
     const populationSize = normalizePositiveInteger(settings.populationSize ?? 100, 'populationSize', SECURITY_LIMITS.MAX_POPULATION_SIZE);
     const generations = normalizePositiveInteger(settings.generations ?? 100, 'generations', SECURITY_LIMITS.MAX_GENERATIONS);
+    validateWorkUnits('geneticAlgorithm', [populationSize, generations, selectCount, selectCount]);
     const mutationRate = settings.mutationRate ?? 0.1;
 
     // Use seeded PRNG if settings.seed is provided

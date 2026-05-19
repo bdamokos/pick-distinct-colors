@@ -8,7 +8,8 @@ export const SECURITY_LIMITS = {
     MAX_GENERATIONS: 1000,
     MAX_PARTICLES: 200,
     MAX_ANTS: 200,
-    MAX_ITERATIONS: 2000
+    MAX_ITERATIONS: 2000,
+    MAX_WORK_UNITS: 20000000
 };
 
 export function normalizePositiveInteger(value, name, max = Number.MAX_SAFE_INTEGER) {
@@ -72,4 +73,11 @@ export function validateExactSelectionArgs(colors, selectCount) {
 
 export function validatePairwiseSelectionArgs(colors, selectCount) {
     validateSelectionArgs(colors, selectCount, { maxColors: SECURITY_LIMITS.MAX_PAIRWISE_COLORS });
+}
+
+export function validateWorkUnits(name, terms, maxWorkUnits = SECURITY_LIMITS.MAX_WORK_UNITS) {
+    const workUnits = terms.reduce((product, term) => product * term, 1);
+    if (!Number.isFinite(workUnits) || workUnits > maxWorkUnits) {
+        throw new RangeError(`${name} estimated work must be less than or equal to ${maxWorkUnits}`);
+    }
 }
