@@ -1,6 +1,8 @@
 import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
 import {
     SECURITY_LIMITS,
+    createExecutionBudget,
+    normalizeFiniteNumber,
     normalizePositiveInteger,
     validateSelectionArgs,
     validateWorkUnits
@@ -10,18 +12,20 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
     console.log('Starting Genetic Algorithm calculation...');
     const start = performance.now();
     validateSelectionArgs(colors, selectCount);
+    const checkBudget = createExecutionBudget('geneticAlgorithm');
 
     const labColors = colors.map(rgb2lab);
     const populationSize = normalizePositiveInteger(settings.populationSize ?? 100, 'populationSize', SECURITY_LIMITS.MAX_POPULATION_SIZE);
     const generations = normalizePositiveInteger(settings.generations ?? 100, 'generations', SECURITY_LIMITS.MAX_GENERATIONS);
     validateWorkUnits('geneticAlgorithm', [populationSize, generations, selectCount, selectCount]);
-    const mutationRate = settings.mutationRate ?? 0.1;
+    const mutationRate = normalizeFiniteNumber(settings.mutationRate ?? 0.1, 'mutationRate');
 
     // Use seeded PRNG if settings.seed is provided
     const prng = typeof settings.seed === 'number' ? mulberry32(settings.seed) : Math.random;
 
     // Helper function to calculate minimum distance between selected colors
     function calculateFitness(selection) {
+        checkBudget();
         let minDist = Infinity;
         for (let i = 0; i < selection.length - 1; i++) {
             for (let j = i + 1; j < selection.length; j++) {
@@ -33,11 +37,12 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
     }
 
     // Generate initial population
-    let population = Array(populationSize).fill().map(() =>
-        Array.from({length: colors.length}, (_, i) => i)
+    let population = Array(populationSize).fill().map(() => {
+        checkBudget();
+        return Array.from({length: colors.length}, (_, i) => i)
             .sort(() => prng() - 0.5)
-            .slice(0, selectCount)
-    );
+            .slice(0, selectCount);
+    });
 
     let bestSolution = population[0];
     let bestFitness = calculateFitness(bestSolution);
@@ -58,6 +63,7 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
         const newPopulation = [];
 
         while (newPopulation.length < populationSize) {
+            checkBudget();
             // Tournament selection
             const tournament1 = Array(3).fill().map(() => Math.floor(prng() * populationSize));
             const tournament2 = Array(3).fill().map(() => Math.floor(prng() * populationSize));
@@ -76,6 +82,7 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
 
             // Fill up with random colors if needed
             while (child.length < selectCount) {
+                checkBudget();
                 const available = Array.from({length: colors.length}, (_, i) => i)
                     .filter(i => !child.includes(i));
                 child.push(available[Math.floor(prng() * available.length)]);
@@ -95,6 +102,7 @@ export function geneticAlgorithm(colors, selectCount, settings = {}) {
         population = newPopulation;
     }
 
+    checkBudget();
     return {
         colors: sortColors(bestSolution.map(i => colors[i])),
         time: performance.now() - start

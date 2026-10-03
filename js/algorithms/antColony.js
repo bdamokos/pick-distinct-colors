@@ -1,6 +1,8 @@
 import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
 import {
     SECURITY_LIMITS,
+    createExecutionBudget,
+    normalizeFiniteNumber,
     normalizePositiveInteger,
     validatePairwiseSelectionArgs,
     validateWorkUnits
@@ -10,14 +12,17 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
     console.log('Starting Ant Colony Optimization...');
     const start = performance.now();
     validatePairwiseSelectionArgs(colors, selectCount);
+    const checkBudget = createExecutionBudget('antColonyOptimization');
 
     const labColors = colors.map(rgb2lab);
     const numAnts = normalizePositiveInteger(settings.numAnts ?? 20, 'numAnts', SECURITY_LIMITS.MAX_ANTS);
     const maxIterations = normalizePositiveInteger(settings.acoIterations ?? settings.iterations ?? 100, 'acoIterations', SECURITY_LIMITS.MAX_ITERATIONS);
-    validateWorkUnits('antColonyOptimization', [maxIterations, numAnts, selectCount, colors.length]);
-    const evaporationRate = settings.evaporationRate ?? 0.1;
-    const alpha = settings.pheromoneImportance ?? 1; // pheromone importance
-    const beta = settings.heuristicImportance ?? 2;  // heuristic importance
+    // Constructing a solution scans selected colors for every remaining candidate;
+    // scoring it then visits every selected pair again.
+    validateWorkUnits('antColonyOptimization', [maxIterations, numAnts, colors.length + 1, Math.max(1, selectCount * (selectCount - 1) / 2)]);
+    const evaporationRate = normalizeFiniteNumber(settings.evaporationRate ?? 0.1, 'evaporationRate');
+    const alpha = normalizeFiniteNumber(settings.pheromoneImportance ?? 1, 'pheromoneImportance');
+    const beta = normalizeFiniteNumber(settings.heuristicImportance ?? 2, 'heuristicImportance');
 
     // Use seeded PRNG if settings.seed is provided
     const prng = typeof settings.seed === 'number' ? mulberry32(settings.seed) : Math.random;
@@ -28,6 +33,7 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
     // Calculate heuristic information (distances between colors)
     const distances = Array(colors.length).fill().map(() => Array(colors.length));
     for (let i = 0; i < colors.length; i++) {
+        checkBudget();
         for (let j = i + 1; j < colors.length; j++) {
             const distance = deltaE(labColors[i], labColors[j]);
             distances[i][j] = distance;
@@ -45,6 +51,7 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
 
         // Each ant constructs a solution
         for (let ant = 0; ant < numAnts; ant++) {
+            checkBudget();
             const available = Array.from({length: colors.length}, (_, i) => i);
             const solution = [];
 
@@ -56,6 +63,7 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
             // Select remaining colors
             while (solution.length < selectCount) {
                 // Calculate probabilities for each available color
+                checkBudget();
                 const probabilities = available.map(i => {
                     const pheromone = Math.pow(pheromones[i], alpha);
                     const minDist = Math.min(...solution.map(j => distances[i][j]));
@@ -82,6 +90,7 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
 
         // Evaluate solutions and update best
         for (const solution of solutions) {
+            checkBudget();
             const fitness = Math.min(...solution.map((i, idx) =>
                 solution.slice(idx + 1).map(j =>
                     deltaE(labColors[i], labColors[j])
@@ -108,6 +117,7 @@ export function antColonyOptimization(colors, selectCount, settings = {}) {
         }
     }
 
+    checkBudget();
     return {
         colors: sortColors(bestSolution.map(i => colors[i])),
         time: performance.now() - start

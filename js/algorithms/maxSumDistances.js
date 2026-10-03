@@ -1,5 +1,5 @@
 import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
-import { validatePairwiseSelectionArgs, validateSelectionArgs } from '../utils/securityLimits.js';
+import { SECURITY_LIMITS, createExecutionBudget, validatePairwiseSelectionArgs, validateSelectionArgs } from '../utils/securityLimits.js';
 
 export function maxSumDistancesGlobal(colors, selectCount) {
     validatePairwiseSelectionArgs(colors, selectCount);
@@ -7,6 +7,8 @@ export function maxSumDistancesGlobal(colors, selectCount) {
         // Create worker code with utility functions in scope
         const workerCode = `
             // Import utility functions from parent
+            const SECURITY_LIMITS = ${JSON.stringify(SECURITY_LIMITS)};
+            const createExecutionBudget = ${createExecutionBudget.toString()};
             const rgb2lab = ${rgb2lab.toString()};
             const deltaE = ${deltaE.toString()};
             const sortColors = ${sortColors.toString()};
@@ -14,10 +16,12 @@ export function maxSumDistancesGlobal(colors, selectCount) {
             // Main worker function
             function maxSumDistancesGlobal(colors, selectCount) {
                 const start = performance.now();
+                const checkBudget = createExecutionBudget('maxSumDistancesGlobal');
                 const labColors = colors.map(rgb2lab);
 
                 // Calculate total distances from each color to all other colors
                 const totalDistances = colors.map((_, i) => {
+                    checkBudget();
                     let sum = 0;
                     for (let j = 0; j < colors.length; j++) {
                         if (i !== j) {
@@ -34,6 +38,7 @@ export function maxSumDistancesGlobal(colors, selectCount) {
                 const selectedIndices = totalDistances.slice(0, selectCount).map(item => item.index);
                 const selectedColors = selectedIndices.map(i => colors[i]);
 
+                checkBudget();
                 return {
                     colors: sortColors(selectedColors),
                     time: performance.now() - start
@@ -47,7 +52,7 @@ export function maxSumDistancesGlobal(colors, selectCount) {
                     const result = maxSumDistancesGlobal(colors, selectCount);
                     self.postMessage({ type: 'complete', result });
                 } catch (error) {
-                    self.postMessage({ type: 'error', error: error.message });
+                    self.postMessage({ type: 'error', error: error.message, name: error.name });
                 }
             };
         `;
@@ -67,7 +72,7 @@ export function maxSumDistancesGlobal(colors, selectCount) {
             if (e.data.type === 'complete') {
                 resolve(e.data.result);
             } else if (e.data.type === 'error') {
-                reject(new Error(e.data.error));
+                reject(e.data.name === 'RangeError' ? new RangeError(e.data.error) : new Error(e.data.error));
             }
             cleanup();
         };
@@ -91,6 +96,7 @@ export function maxSumDistancesSequential(colors, selectCount, seed) {
     console.log('Starting Maximum Sum (Sequential) calculation...');
     const start = performance.now();
     validateSelectionArgs(colors, selectCount);
+    const checkBudget = createExecutionBudget('maxSumDistancesSequential');
 
     const labColors = colors.map(rgb2lab);
     const selected = [];
@@ -117,6 +123,7 @@ export function maxSumDistancesSequential(colors, selectCount, seed) {
 
         // Find point with maximum sum of distances to selected points
         for (let i = 0; i < available.length; i++) {
+            checkBudget();
             const totalDistance = calculateTotalDistance(available[i]);
             if (totalDistance > bestDistance) {
                 bestDistance = totalDistance;
@@ -128,6 +135,7 @@ export function maxSumDistancesSequential(colors, selectCount, seed) {
         available.splice(bestIndex, 1);
     }
 
+    checkBudget();
     return {
         colors: sortColors(selected.map(i => colors[i])),
         time: performance.now() - start

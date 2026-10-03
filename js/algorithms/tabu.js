@@ -1,6 +1,7 @@
 import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
 import {
     SECURITY_LIMITS,
+    createExecutionBudget,
     normalizePositiveInteger,
     validateSelectionArgs,
     validateWorkUnits
@@ -10,6 +11,7 @@ export function tabuSearch(colors, selectCount, settings = {}) {
     console.log('Starting Tabu Search...');
     const start = performance.now();
     validateSelectionArgs(colors, selectCount);
+    const checkBudget = createExecutionBudget('tabuSearch');
 
     const labColors = colors.map(rgb2lab);
     const maxIterations = normalizePositiveInteger(settings.tabuIterations ?? settings.maxIterations ?? 1000, 'tabuIterations', SECURITY_LIMITS.MAX_ITERATIONS);
@@ -42,12 +44,14 @@ export function tabuSearch(colors, selectCount, settings = {}) {
     }
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
+        checkBudget();
         let bestNeighborSolution = null;
         let bestNeighborFitness = -Infinity;
 
         // Examine all possible moves
         for (let i = 0; i < selectCount; i++) {
             for (let j = 0; j < colors.length; j++) {
+                checkBudget();
                 if (!current.includes(j)) {
                     const moveKey = getMoveKey(current[i], j);
                     const neighbor = [...current];
@@ -92,6 +96,7 @@ export function tabuSearch(colors, selectCount, settings = {}) {
         }
     }
 
+    checkBudget();
     return {
         colors: sortColors(best.map(i => colors[i])),
         time: performance.now() - start
