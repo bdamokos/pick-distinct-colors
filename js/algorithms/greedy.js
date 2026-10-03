@@ -1,10 +1,11 @@
 import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
-import { validateSelectionArgs } from '../utils/securityLimits.js';
+import { createExecutionBudget, validateSelectionArgs } from '../utils/securityLimits.js';
 
 export function greedySelection(colors, selectCount, seed) {
     console.log('Starting Greedy calculation...');
     const start = performance.now();
     validateSelectionArgs(colors, selectCount);
+    const checkBudget = createExecutionBudget('greedySelection');
 
     const labColors = colors.map(rgb2lab);
     const selected = [];
@@ -33,6 +34,7 @@ export function greedySelection(colors, selectCount, seed) {
 
         // Find point with maximum minimum distance to selected points
         for (let i = 0; i < available.length; i++) {
+            checkBudget();
             const minDistance = calculateMinDistance(available[i]);
             if (minDistance > bestMinDistance) {
                 bestMinDistance = minDistance;
@@ -44,6 +46,7 @@ export function greedySelection(colors, selectCount, seed) {
         available.splice(bestIndex, 1);
     }
 
+    checkBudget();
     return {
         colors: sortColors(selected.map(i => colors[i])),
         time: performance.now() - start

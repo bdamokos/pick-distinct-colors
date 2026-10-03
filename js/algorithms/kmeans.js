@@ -1,10 +1,11 @@
 import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
-import { validateSelectionArgs } from '../utils/securityLimits.js';
+import { createExecutionBudget, validateSelectionArgs } from '../utils/securityLimits.js';
 
 export function kmeansppSelection(colors, selectCount, seed) {
     console.log('Starting K-means++ calculation...');
     const start = performance.now();
     validateSelectionArgs(colors, selectCount);
+    const checkBudget = createExecutionBudget('kmeansppSelection');
 
     const labColors = colors.map(rgb2lab);
 
@@ -24,7 +25,9 @@ export function kmeansppSelection(colors, selectCount, seed) {
 
     // Select remaining centers using k-means++ initialization
     while (selected.length < selectCount) {
+        checkBudget();
         const distances = Array.from({length: colors.length}, (_, i) => {
+            checkBudget();
             if (selected.includes(i)) return 0;
             const dist = minDistanceToCenters(i, selected);
             return dist * dist; // Square distances for k-means++
@@ -44,6 +47,7 @@ export function kmeansppSelection(colors, selectCount, seed) {
         selected.push(selectedIndex);
     }
 
+    checkBudget();
     return {
         colors: sortColors(selected.map(i => colors[i])),
         time: performance.now() - start

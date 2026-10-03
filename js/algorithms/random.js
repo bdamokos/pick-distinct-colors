@@ -1,10 +1,11 @@
 import { sortColors, mulberry32 } from '../utils/colorUtils.js';
-import { validateSelectionArgs } from '../utils/securityLimits.js';
+import { createExecutionBudget, validateSelectionArgs } from '../utils/securityLimits.js';
 
 export function randomSelection(colors, selectCount, seed) {
     console.log('Starting Random Selection...');
     const start = performance.now();
     validateSelectionArgs(colors, selectCount);
+    const checkBudget = createExecutionBudget('randomSelection');
 
     // Use seeded PRNG if seed is provided
     const prng = typeof seed === 'number' ? mulberry32(seed) : Math.random;
@@ -14,11 +15,13 @@ export function randomSelection(colors, selectCount, seed) {
     const selected = [];
 
     for (let i = 0; i < selectCount; i++) {
+        checkBudget();
         const randomIndex = Math.floor(prng() * indices.length);
         selected.push(indices[randomIndex]);
         indices.splice(randomIndex, 1);
     }
 
+    checkBudget();
     return {
         colors: sortColors(selected.map(i => colors[i])),
         time: performance.now() - start

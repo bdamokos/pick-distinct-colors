@@ -1,6 +1,8 @@
 import { rgb2lab, deltaE, sortColors, mulberry32 } from '../utils/colorUtils.js';
 import {
     SECURITY_LIMITS,
+    createExecutionBudget,
+    normalizeFiniteNumber,
     normalizePositiveInteger,
     validateSelectionArgs,
     validateWorkUnits
@@ -10,13 +12,14 @@ export function simulatedAnnealing(colors, selectCount, settings = {}) {
     console.log('Starting Simulated Annealing calculation...');
     const start = performance.now();
     validateSelectionArgs(colors, selectCount);
+    const checkBudget = createExecutionBudget('simulatedAnnealing');
 
     const labColors = colors.map(rgb2lab);
     const maxIterations = normalizePositiveInteger(settings.maxIterations ?? 1000, 'maxIterations', SECURITY_LIMITS.MAX_ITERATIONS);
     validateWorkUnits('simulatedAnnealing', [maxIterations, selectCount, selectCount]);
-    const initialTemp = settings.initialTemp ?? 1000;
-    const coolingRate = settings.coolingRate ?? 0.995;
-    const minTemp = settings.minTemp ?? 0.1;
+    const initialTemp = normalizeFiniteNumber(settings.initialTemp ?? 1000, 'initialTemp');
+    const coolingRate = normalizeFiniteNumber(settings.coolingRate ?? 0.995, 'coolingRate');
+    const minTemp = normalizeFiniteNumber(settings.minTemp ?? 0.1, 'minTemp');
 
     // Use seeded PRNG if settings.seed is provided
     const prng = typeof settings.seed === 'number' ? mulberry32(settings.seed) : Math.random;
@@ -46,6 +49,7 @@ export function simulatedAnnealing(colors, selectCount, settings = {}) {
 
     // Main loop
     for (let i = 0; i < maxIterations && temperature > minTemp; i++) {
+        checkBudget();
         // Generate neighbor by swapping one selected color with an unselected one
         const neighborSolution = [...currentSolution];
         const swapIndex = Math.floor(prng() * selectCount);
@@ -71,6 +75,7 @@ export function simulatedAnnealing(colors, selectCount, settings = {}) {
         temperature *= coolingRate;
     }
 
+    checkBudget();
     return {
         colors: sortColors(bestSolution.map(i => colors[i])),
         time: performance.now() - start

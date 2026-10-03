@@ -9,7 +9,8 @@ export const SECURITY_LIMITS = {
     MAX_PARTICLES: 200,
     MAX_ANTS: 200,
     MAX_ITERATIONS: 2000,
-    MAX_WORK_UNITS: 20000000
+    MAX_WORK_UNITS: 20000000,
+    MAX_EXECUTION_TIME_MS: 2000
 };
 
 export function normalizePositiveInteger(value, name, max = Number.MAX_SAFE_INTEGER) {
@@ -18,6 +19,13 @@ export function normalizePositiveInteger(value, name, max = Number.MAX_SAFE_INTE
     }
     if (value > max) {
         throw new RangeError(`${name} must be less than or equal to ${max}`);
+    }
+    return value;
+}
+
+export function normalizeFiniteNumber(value, name) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new RangeError(`${name} must be a finite number`);
     }
     return value;
 }
@@ -69,6 +77,12 @@ export function validateExactSelectionArgs(colors, selectCount) {
             `exact algorithms are limited to ${SECURITY_LIMITS.MAX_EXACT_COMBINATIONS} combinations`
         );
     }
+    // Each combination is constructed and then scored across every selected pair.
+    const workPerCombination = selectCount + selectCount * (selectCount - 1) / 2;
+    const maxCombinations = Math.floor(SECURITY_LIMITS.MAX_WORK_UNITS / workPerCombination);
+    if (countCombinationsOverLimit(colors.length, selectCount, maxCombinations)) {
+        throw new RangeError(`exact algorithms estimated work must be less than or equal to ${SECURITY_LIMITS.MAX_WORK_UNITS}`);
+    }
 }
 
 export function validatePairwiseSelectionArgs(colors, selectCount) {
@@ -80,4 +94,15 @@ export function validateWorkUnits(name, terms, maxWorkUnits = SECURITY_LIMITS.MA
     if (!Number.isFinite(workUnits) || workUnits > maxWorkUnits) {
         throw new RangeError(`${name} estimated work must be less than or equal to ${maxWorkUnits}`);
     }
+}
+
+// Check at bounded inner-loop intervals: an iteration can itself be expensive.
+// A synchronous deadline works in both browsers and Node without changing APIs.
+export function createExecutionBudget(name) {
+    const deadline = performance.now() + SECURITY_LIMITS.MAX_EXECUTION_TIME_MS;
+    return function checkExecutionBudget() {
+        if (performance.now() >= deadline) {
+            throw new RangeError(`${name} exceeded its ${SECURITY_LIMITS.MAX_EXECUTION_TIME_MS}ms execution budget`);
+        }
+    };
 }

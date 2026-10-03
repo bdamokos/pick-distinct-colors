@@ -1,10 +1,11 @@
 import { rgb2lab, deltaE, sortColors } from '../utils/colorUtils.js';
-import { validateExactSelectionArgs } from '../utils/securityLimits.js';
+import { createExecutionBudget, validateExactSelectionArgs } from '../utils/securityLimits.js';
 
 export function exactMaximum(colors, selectCount) {
     console.log('Starting Exact Maximum calculation...');
     const start = performance.now();
     validateExactSelectionArgs(colors, selectCount);
+    const checkBudget = createExecutionBudget('exactMaximum');
 
     const labColors = colors.map(rgb2lab);
     let bestSelection = null;
@@ -43,6 +44,7 @@ export function exactMaximum(colors, selectCount) {
     // Try all combinations
     const indices = Array.from({length: colors.length}, (_, i) => i);
     for (const selection of combinations(indices, selectCount)) {
+        checkBudget();
         const maxDistance = calculateMaxDistance(selection);
         if (maxDistance > bestMaxDistance) {
             bestMaxDistance = maxDistance;
@@ -50,6 +52,7 @@ export function exactMaximum(colors, selectCount) {
         }
     }
 
+    checkBudget();
     return {
         colors: sortColors(bestSelection.map(i => colors[i])),
         time: performance.now() - start

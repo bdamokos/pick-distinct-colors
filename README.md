@@ -122,6 +122,14 @@ const result2 = await pickDistinctColors({ count: 5, algorithm: 'geneticAlgorith
 > 
 > **Determinism:** By default, `pickDistinctColors` is deterministic (uses a default seed if none is provided). If you call the underlying algorithms directly (e.g., `greedySelection`, `geneticAlgorithm`), you can omit the `seed` parameter to get non-deterministic results, or provide a seed for reproducibility.
 
+#### Computation limits
+
+Algorithm tuning options must be finite numbers; numeric strings and other values requiring coercion are rejected.
+
+Color-selection algorithms validate input sizes and enforce a two-second execution budget, including direct algorithm calls. The deadline is checked inside expensive loops; an over-budget call throws `RangeError` at the next checkpoint instead of returning a partial palette. Exact searches also limit the total work of constructing and scoring combinations, and ant colony accounts for its nested candidate and selected-color scans.
+
+These algorithms run synchronously, except for the browser worker used by `maxSumDistancesGlobal`. A server processing untrusted requests should also isolate computations in workers or processes and apply request quotas. The execution budget bounds selection calls; it does not cover the separate color-analysis utility functions.
+
 #### Legacy/Direct Algorithm Usage
 
 ```javascript
