@@ -24,6 +24,8 @@ MAX_PARTICLES = 200
 MAX_ANTS = 200
 MAX_ITERATIONS = 2000
 MAX_ANNEALING_TEMPERATURE = 1_000_000
+MAX_SEARCH_WORK_UNITS = 20_000_000
+MAX_SEARCH_EXECUTION_SECONDS = 2
 
 
 def _normalize_positive_int(value: Any, name: str, maximum: int) -> int:
@@ -82,7 +84,32 @@ def _validate_exact_selection_args(
     colors, select_count = _validate_selection_args(colors, select_count)
     if _combinations_exceed_limit(len(colors), select_count, MAX_EXACT_COMBINATIONS):
         raise ValueError(f"exact algorithms are limited to {MAX_EXACT_COMBINATIONS} combinations")
+    # Account for constructing each selection as well as scoring every pair.
+    work_per_combination = select_count + select_count * (select_count - 1) // 2
+    if _combinations_exceed_limit(len(colors), select_count,
+                                 MAX_SEARCH_WORK_UNITS // work_per_combination):
+        raise ValueError(f"exact_minimum estimated work must be less than or equal to {MAX_SEARCH_WORK_UNITS}")
     return colors, select_count
+
+
+def _create_search_budget(name: str):
+    deadline = time.monotonic() + MAX_SEARCH_EXECUTION_SECONDS
+
+    def check_budget():
+        if time.monotonic() >= deadline:
+            raise ValueError(f"{name} exceeded its {MAX_SEARCH_EXECUTION_SECONDS}s execution budget")
+
+    return check_budget
+
+
+def _minimum_selection_distance(lab_colors, selection, check_budget) -> float:
+    min_dist = float('inf')
+    for i in range(len(selection) - 1):
+        for j in range(i + 1, len(selection)):
+            check_budget()
+            dist = delta_e(lab_colors[selection[i]], lab_colors[selection[j]])
+            min_dist = min(min_dist, dist)
+    return min_dist
 
 
 def _validate_pairwise_selection_args(
@@ -855,23 +882,30 @@ def tabu_search(colors: List[Tuple[int, int, int]], select_count: int,
         settings = {}
     colors, select_count = _validate_selection_args(colors, select_count)
     
-    start_time = time.time()
-    lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     max_iterations = _normalize_positive_int(settings.get('maxIterations', settings.get('tabuIterations', 1000)), 'maxIterations', MAX_ITERATIONS)
     tabu_tenure = _normalize_positive_int(settings.get('tabuTenure', 5), 'tabuTenure', MAX_ITERATIONS)
-    
-    def calculate_fitness(selection: List[int]) -> float:
-        min_dist = float('inf')
-        for i in range(len(selection) - 1):
-            for j in range(i + 1, len(selection)):
-                dist = delta_e(lab_colors[selection[i]], lab_colors[selection[j]])
-                min_dist = min(min_dist, dist)
-        return min_dist
+
+    pair_count = select_count * (select_count - 1) // 2
+    replacements = len(colors) - select_count
+    # With no replacement, the first iteration scans membership and then stops.
+    iterations = max_iterations if replacements else 1
+    membership_work = select_count * len(colors) * select_count
+    neighbor_work = select_count * replacements * (select_count + pair_count)
+    # At most select_count moves are added per iteration and retained for tenure.
+    move_work = select_count * (min(iterations, tabu_tenure) + 2)
+    work = select_count + pair_count + iterations * (membership_work + neighbor_work + move_work)
+    if work > MAX_SEARCH_WORK_UNITS:
+        raise ValueError(f"tabu_search estimated work must be less than or equal to {MAX_SEARCH_WORK_UNITS}")
+
+    start_time = time.time()
+    check_budget = _create_search_budget('tabu_search')
+    lab_colors = [rgb_to_lab(rgb) for rgb in colors]
+    check_budget()
     
     # Initialize solution
     current = list(range(select_count))
     best = current[:]
-    best_fitness = calculate_fitness(best)
+    best_fitness = _minimum_selection_distance(lab_colors, best, check_budget)
     
     # Tabu list implementation
     tabu_list = {}
@@ -880,18 +914,20 @@ def tabu_search(colors: List[Tuple[int, int, int]], select_count: int,
         return f"{old_color}-{new_color}"
     
     for iteration in range(max_iterations):
+        check_budget()
         best_neighbor_solution = None
         best_neighbor_fitness = -float('inf')
         
         # Examine all possible moves
         for i in range(select_count):
             for j in range(len(colors)):
+                check_budget()
                 if j not in current:
                     move_key = get_move_key(current[i], j)
                     neighbor = current[:]
                     neighbor[i] = j
                     
-                    fitness = calculate_fitness(neighbor)
+                    fitness = _minimum_selection_distance(lab_colors, neighbor, check_budget)
                     
                     # Accept if better than current best neighbor and not tabu
                     # or if satisfies aspiration criterion (better than global best)
@@ -923,8 +959,10 @@ def tabu_search(colors: List[Tuple[int, int, int]], select_count: int,
             del tabu_list[key]
     
     selected_colors = [colors[i] for i in best]
+    selected_colors = sort_colors(selected_colors)
+    check_budget()
     return {
-        'colors': sort_colors(selected_colors),
+        'colors': selected_colors,
         'time': (time.time() - start_time) * 1000
     }
 
@@ -937,15 +975,9 @@ def exact_minimum(colors: List[Tuple[int, int, int]], select_count: int,
     """
     colors, select_count = _validate_exact_selection_args(colors, select_count)
     start_time = time.time()
+    check_budget = _create_search_budget('exact_minimum')
     lab_colors = [rgb_to_lab(rgb) for rgb in colors]
-    
-    def calculate_min_distance(selection: List[int]) -> float:
-        min_dist = float('inf')
-        for i in range(len(selection) - 1):
-            for j in range(i + 1, len(selection)):
-                dist = delta_e(lab_colors[selection[i]], lab_colors[selection[j]])
-                min_dist = min(min_dist, dist)
-        return min_dist
+    check_budget()
     
     best_selection = None
     best_min_distance = -float('inf')
@@ -953,14 +985,17 @@ def exact_minimum(colors: List[Tuple[int, int, int]], select_count: int,
     # Try all combinations
     indices = list(range(len(colors)))
     for selection in combinations(indices, select_count):
-        min_distance = calculate_min_distance(list(selection))
+        check_budget()
+        min_distance = _minimum_selection_distance(lab_colors, selection, check_budget)
         if min_distance > best_min_distance:
             best_min_distance = min_distance
             best_selection = list(selection)
     
     selected_colors = [colors[i] for i in best_selection]
+    selected_colors = sort_colors(selected_colors)
+    check_budget()
     return {
-        'colors': sort_colors(selected_colors),
+        'colors': selected_colors,
         'time': (time.time() - start_time) * 1000
     }
 

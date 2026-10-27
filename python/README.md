@@ -221,6 +221,25 @@ All selection functions return a dictionary with:
 
 For large datasets (1000+ colors), start with fast algorithms. Use optimization algorithms when you need the highest quality results and can afford longer computation times.
 
+### Tabu and exact search budgets
+
+All direct, registry and convenience calls to `tabu_search` and `exact_minimum`
+reject estimated work above 20,000,000 units with `ValueError` before color
+conversion or scoring. Tabu accounts for iterations, membership scans, replacement
+construction, pair scoring and move bookkeeping. Exact search accounts for the
+number of combinations multiplied by selection construction and pair scoring;
+the existing 1,000,000-combination limit also applies.
+
+Both searches enforce an internal two-second monotonic execution budget, checked
+between candidates and inside pair scoring. Exceeding it raises `ValueError`
+instead of returning a partial result. These are cooperative checks, so a running
+primitive operation must finish before the next check. Smaller pools, selection
+counts or tabu iteration settings reduce work. Python's `maxIterations` option
+takes precedence over its `tabuIterations` alias.
+
+Run the bounded search regressions from the repository root with
+`python3 -m unittest discover -s python -p 'test_search_budget_1d434c7a.py'`.
+
 ## Examples
 
 ### Generate Distinct Colors (Most Common Use Case)
