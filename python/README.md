@@ -172,6 +172,22 @@ rgb_color = pdc.hex_to_rgb('#FF0000')    # (255, 0, 0)
 ```
 
 ### Color Analysis
+
+`calculate_metrics` accepts a list or tuple of RGB triples (each a list or tuple
+of three integers from 0 to 255). Invalid input raises `ValueError`. Empty palettes
+and valid singletons return `{'min': 0, 'max': 0, 'avg': 0, 'sum': 0}`; duplicate
+colors are allowed and the input is left unchanged.
+
+Analysis is limited to 1,000,000 unordered pairs (`MAX_METRICS_PAIRS`), allowing
+up to 1,414 colors. Larger palettes raise `ValueError` before RGB validation,
+conversion or scoring. Metrics accumulate minimum, maximum and total distance
+without retaining individual pair distances: auxiliary memory is O(n) for LAB
+colors, while scoring remains O(n²) within the pair limit. The limit bounds work,
+not elapsed time; no partial metrics are returned.
+
+Run the bounded metrics regressions from the repository root with
+`python3 -B -m unittest discover -s python -p 'test_metrics_budget_0e67f5fc.py'`.
+
 ```python
 # Calculate comprehensive metrics
 metrics = pdc.calculate_metrics(colors)
