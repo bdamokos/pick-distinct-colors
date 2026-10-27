@@ -232,8 +232,13 @@ export async function initializePage() {
     updateComplexityEstimate();
 }
 
+export function readRandomColorCount() {
+    const value = document.getElementById('totalColors').value.trim();
+    return value === '' ? NaN : Number(value);
+}
+
 export function updateGenerateButtonText() {
-    const randomCount = parseInt(document.getElementById('totalColors').value);
+    const randomCount = readRandomColorCount();
     const generateButton = document.getElementById('generateButton');
     
     if (window.importedColors) {
@@ -258,14 +263,14 @@ export function updateComplexityEstimate() {
     
     // Calculate total colors based on both imported and random colors
     if (window.importedColors) {
-        const randomCount = parseInt(document.getElementById('totalColors').value);
+        const randomCount = readRandomColorCount();
         if (window.importedColors.mode === 'replace') {
             totalColors = window.importedColors.colors.length;
         } else {
             totalColors = randomCount + window.importedColors.colors.length;
         }
     } else {
-        totalColors = parseInt(document.getElementById('totalColors').value);
+        totalColors = readRandomColorCount();
     }
     
     // Calculate number of combinations (n choose r)
@@ -290,18 +295,23 @@ export function updateComplexityEstimate() {
 }
 
 export function generateInitialColors() {
-    const totalColors = parseInt(document.getElementById('totalColors').value);
+    const totalColors = readRandomColorCount();
     let summary = '';
     let initialColors;
     
     try {
         // Admit the combined palette before allocation, sorting or display changes.
         const importedCount = window.importedColors?.colors.length || 0;
+        let paletteSize;
         if (window.importedColors?.mode === 'replace') {
-            validateAnalysisSize(importedCount);
+            paletteSize = importedCount;
         } else {
             validateAnalysisSize(totalColors);
-            validateAnalysisSize(totalColors + importedCount);
+            paletteSize = totalColors + importedCount;
+        }
+        validateAnalysisSize(paletteSize);
+        if (paletteSize < 2) {
+            throw new RangeError('At least two colors are required; add imported or random colors');
         }
     
         if (window.importedColors) {

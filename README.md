@@ -132,6 +132,8 @@ These algorithms run synchronously, except for the browser worker used by `maxSu
 
 JavaScript `calculateMetrics` and `findClosestPair` synchronously support at most 1,024 colors (523,776 unordered pairs per call). Larger palettes throw `RangeError` before RGB conversion. The browser applies the same limit to imports and to the combined imported/random palette before generating or analyzing it; rejected input leaves the previous palette and results available. Larger analyses are unsupported. This count limit does not bound import text parsing or other analysis utilities.
 
+Browser rendering requires at least two colors in the combined palette. The random-color count must be a non-negative safe integer; number-input notation such as `1e3` means 1,000 colors. These browser checks do not change the helpers' empty/singleton results.
+
 #### Legacy/Direct Algorithm Usage
 
 ```javascript

@@ -107,7 +107,6 @@ test.each([
     [limit + 1, null],
     [0, { mode: 'replace', colors: Array(limit + 1).fill(palette[0]) }],
     [limit - 2, { mode: 'append', colors: palette }],
-    [-1, null], [NaN, null]
 ])('generation rejects count %p before allocation and preserves display/state', (randomCount, imported) => {
     const elements = browser({ randomCount, imported });
     generateInitialColors();
@@ -119,6 +118,55 @@ test.each([
     expect(elements['initial-colors'].innerHTML).toBe('previous initial-colors');
     expect(elements.calculateButton.disabled).toBe(true);
     expect(elements.colorSummary.textContent).toMatch(/use fewer imported or random colors/);
+});
+
+test.each(['', '1.5', '-1', 'NaN', 'Infinity', '4colors'])('invalid random count %p gets a usable error before generation or import', value => {
+    const previous = { mode: 'append', colors: palette };
+    const elements = browser({ randomCount: value, imported: previous, mode: 'append', input: JSON.stringify(palette) });
+    generateInitialColors();
+    expect(elements.colorSummary.textContent).toMatch(/Enter a valid color count/);
+    expect(window.randomColor).not.toHaveBeenCalled();
+    expect(window.sortColors).not.toHaveBeenCalled();
+    expect(window.initialColors).toBe(palette);
+    expect(elements.results.innerHTML).toBe('previous results');
+    importColors();
+    expect(elements.importError.textContent).toMatch(/Enter a valid color count/);
+    expect(window.importedColors).toBe(previous);
+});
+
+test('exponent input uses the complete count for admission and generation', () => {
+    const elements = browser({ randomCount: '1e3', mode: 'append', input: JSON.stringify(Array(100).fill(palette[0])) });
+    importColors();
+    expect(elements.importError.textContent).toMatch(/at most 1024 colors/);
+    expect(window.importedColors).toBeNull();
+    // Bound this acceptance check to generation only; no large pairwise analysis.
+    window.sortColors.mockImplementation(() => { throw Error('generation complete'); });
+    generateInitialColors();
+    expect(window.randomColor).toHaveBeenCalledTimes(1000);
+    expect(window.sortColors.mock.calls[0][0]).toHaveLength(1000);
+});
+
+test.each([
+    [0, null], [1, null],
+    [0, { mode: 'replace', colors: [palette[0]] }],
+    [0, { mode: 'append', colors: [palette[0]] }]
+])('browser palettes below two colors are rejected before processing', (randomCount, imported) => {
+    const elements = browser({ randomCount, imported });
+    generateInitialColors();
+    expect(elements.colorSummary.textContent).toMatch(/At least two colors are required/);
+    expect(window.randomColor).not.toHaveBeenCalled();
+    expect(window.sortColors).not.toHaveBeenCalled();
+    expect(window.createSpectrumPlot).not.toHaveBeenCalled();
+    expect(window.initialColors).toBe(palette);
+    expect(elements.results.innerHTML).toBe('previous results');
+});
+
+test('zero random colors can still append enough imported colors', () => {
+    const elements = browser({ randomCount: 0, imported: { mode: 'append', colors: palette } });
+    generateInitialColors();
+    expect(window.initialColors).toEqual(palette);
+    expect(window.randomColor).not.toHaveBeenCalled();
+    expect(elements.calculateButton.disabled).toBe(false);
 });
 
 test('generation rechecks controls and mode changed after a successful import', () => {

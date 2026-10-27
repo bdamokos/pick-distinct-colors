@@ -1,6 +1,6 @@
 import { rgbToHex } from './colorUtils.js';
 import { validateAnalysisSize } from './securityLimits.js';
-import { updateGenerateButtonText, updateComplexityEstimate } from './uiUtils.js';
+import { updateGenerateButtonText, updateComplexityEstimate, readRandomColorCount } from './uiUtils.js';
 
 export function showExportModal(colors) {
     // Create modal if it doesn't exist
@@ -89,7 +89,7 @@ export function importColors() {
 
         validateAnalysisSize(importedColors.length);
         if (mode !== 'replace') {
-            const randomCount = parseInt(document.getElementById('totalColors').value);
+            const randomCount = readRandomColorCount();
             validateAnalysisSize(randomCount);
             validateAnalysisSize(randomCount + importedColors.length);
         }

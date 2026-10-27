@@ -15,7 +15,10 @@ export const SECURITY_LIMITS = {
 
 // Bound synchronous analysis without changing RGB or empty-palette semantics.
 export function validateAnalysisSize(count) {
-    if (!Number.isSafeInteger(count) || count < 0 || count > SECURITY_LIMITS.MAX_PAIRWISE_COLORS) {
+    if (!Number.isSafeInteger(count) || count < 0) {
+        throw new RangeError('Enter a valid color count: a non-negative safe integer is required');
+    }
+    if (count > SECURITY_LIMITS.MAX_PAIRWISE_COLORS) {
         throw new RangeError(`Palette analysis supports at most ${SECURITY_LIMITS.MAX_PAIRWISE_COLORS} colors; use fewer imported or random colors`);
     }
 }
