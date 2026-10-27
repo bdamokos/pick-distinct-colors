@@ -13,6 +13,13 @@ export const SECURITY_LIMITS = {
     MAX_EXECUTION_TIME_MS: 2000
 };
 
+// Bound synchronous analysis without changing RGB or empty-palette semantics.
+export function validateAnalysisSize(count) {
+    if (!Number.isSafeInteger(count) || count < 0 || count > SECURITY_LIMITS.MAX_PAIRWISE_COLORS) {
+        throw new RangeError(`Palette analysis supports at most ${SECURITY_LIMITS.MAX_PAIRWISE_COLORS} colors; use fewer imported or random colors`);
+    }
+}
+
 export function normalizePositiveInteger(value, name, max = Number.MAX_SAFE_INTEGER) {
     if (!Number.isSafeInteger(value) || value < 1) {
         throw new RangeError(`${name} must be a positive safe integer`);

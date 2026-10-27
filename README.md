@@ -128,7 +128,9 @@ Algorithm tuning options must be finite numbers; numeric strings and other value
 
 Color-selection algorithms validate input sizes and enforce a two-second execution budget, including direct algorithm calls. The deadline is checked inside expensive loops; an over-budget call throws `RangeError` at the next checkpoint instead of returning a partial palette. Exact searches also limit the total work of constructing and scoring combinations, and ant colony accounts for its nested candidate and selected-color scans.
 
-These algorithms run synchronously, except for the browser worker used by `maxSumDistancesGlobal`. A server processing untrusted requests should also isolate computations in workers or processes and apply request quotas. The execution budget bounds selection calls; it does not cover the separate color-analysis utility functions.
+These algorithms run synchronously, except for the browser worker used by `maxSumDistancesGlobal`. A server processing untrusted requests should also isolate computations in workers or processes and apply request quotas. The execution budget bounds selection calls.
+
+JavaScript `calculateMetrics` and `findClosestPair` synchronously support at most 1,024 colors (523,776 unordered pairs per call). Larger palettes throw `RangeError` before RGB conversion. The browser applies the same limit to imports and to the combined imported/random palette before generating or analyzing it; rejected input leaves the previous palette and results available. Larger analyses are unsupported. This count limit does not bound import text parsing or other analysis utilities.
 
 #### Legacy/Direct Algorithm Usage
 
