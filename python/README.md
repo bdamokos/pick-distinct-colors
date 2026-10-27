@@ -272,6 +272,23 @@ for algo in algorithms:
     print(f"{algo:<20} {metrics['min']:<8.1f} {result['time']:<10.1f}")
 ```
 
+### Simulated annealing temperature bounds
+
+All Python entrypoints for `simulated_annealing` validate temperature options before
+color conversion or scoring. Values must be built-in `int` or `float` numbers;
+booleans, numeric strings, sequences, numeric subclasses, NaN and infinity are
+rejected with `ValueError`.
+
+- `initialTemp`: greater than 0 and at most 1,000,000 (default: 1000).
+- `minTemp`: greater than 0 and at most `initialTemp` (default: 0.1).
+- `coolingRate`: strictly between 0 and 1 (default: 0.995).
+
+Equal minimum and initial temperatures are allowed and skip the annealing loop.
+The existing `maxIterations` limit still applies independently.
+
+Run the focused temperature regressions from the repository root with
+`python3 -m unittest discover -s python -p 'test_annealing_temperature_cfa98643.py'`.
+
 ### Custom Optimization
 ```python
 # Fine-tune simulated annealing for your specific use case
