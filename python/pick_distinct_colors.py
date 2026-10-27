@@ -18,6 +18,7 @@ MAX_COLOR_POOL_SIZE = 4096
 MAX_SELECT_COUNT = 256
 MAX_EXACT_COMBINATIONS = 1_000_000
 MAX_PAIRWISE_COLORS = 1024
+MAX_METRICS_PAIRS = 1_000_000
 MAX_POPULATION_SIZE = 500
 MAX_GENERATIONS = 1000
 MAX_PARTICLES = 200
@@ -170,23 +171,33 @@ def sort_colors(colors: List[Tuple[int, int, int]]) -> List[Tuple[int, int, int]
 
 
 def calculate_metrics(colors: List[Tuple[int, int, int]]) -> Dict[str, float]:
-    """Calculate distance metrics for a set of colors."""
-    lab_colors = [rgb_to_lab(rgb) for rgb in colors]
-    distances = []
-    
-    for i in range(len(colors) - 1):
-        for j in range(i + 1, len(colors)):
+    """Calculate aggregates for RGB triples, limited to MAX_METRICS_PAIRS pairs."""
+    if not isinstance(colors, (list, tuple)):
+        raise ValueError("colors must be a list or tuple of RGB triples")
+    color_count = len(colors)
+    pair_count = color_count * (color_count - 1) // 2
+    if pair_count > MAX_METRICS_PAIRS:
+        raise ValueError(f"calculate_metrics is limited to {MAX_METRICS_PAIRS} pairs")
+    lab_colors = [rgb_to_lab(_validate_rgb_color(rgb)) for rgb in colors]
+    min_distance = float('inf')
+    max_distance = 0.0
+    total_distance = 0.0
+
+    for i in range(color_count - 1):
+        for j in range(i + 1, color_count):
             dist = delta_e(lab_colors[i], lab_colors[j])
-            distances.append(dist)
+            min_distance = min(min_distance, dist)
+            max_distance = max(max_distance, dist)
+            total_distance += dist
     
-    if not distances:
+    if not pair_count:
         return {'min': 0, 'max': 0, 'avg': 0, 'sum': 0}
     
     return {
-        'min': min(distances),
-        'max': max(distances),
-        'avg': sum(distances) / len(distances),
-        'sum': sum(distances)
+        'min': min_distance,
+        'max': max_distance,
+        'avg': total_distance / pair_count,
+        'sum': total_distance
     }
 
 
