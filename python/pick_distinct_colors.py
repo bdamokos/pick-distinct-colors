@@ -23,6 +23,7 @@ MAX_GENERATIONS = 1000
 MAX_PARTICLES = 200
 MAX_ANTS = 200
 MAX_ITERATIONS = 2000
+MAX_ANNEALING_TEMPERATURE = 1_000_000
 
 
 def _normalize_positive_int(value: Any, name: str, maximum: int) -> int:
@@ -455,13 +456,23 @@ def simulated_annealing(colors: List[Tuple[int, int, int]], select_count: int, s
     if settings is None:
         settings = {}
     colors, select_count = _validate_selection_args(colors, select_count)
-    prng = random.Random(settings["seed"]) if "seed" in settings else random
-    start_time = time.time()
-    lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     max_iterations = _normalize_positive_int(settings.get('maxIterations', 1000), 'maxIterations', MAX_ITERATIONS)
     initial_temp = settings.get('initialTemp', 1000)
     cooling_rate = settings.get('coolingRate', 0.995)
     min_temp = settings.get('minTemp', 0.1)
+
+    for name, value in (('initialTemp', initial_temp), ('minTemp', min_temp)):
+        # Check the range without converting arbitrarily large integers to float.
+        if type(value) not in (int, float) or not 0 < value <= MAX_ANNEALING_TEMPERATURE:
+            raise ValueError(f"{name} must be a finite int or float greater than 0 and less than or equal to {MAX_ANNEALING_TEMPERATURE}")
+    if type(cooling_rate) not in (int, float) or not 0 < cooling_rate < 1:
+        raise ValueError("coolingRate must be a finite int or float greater than 0 and less than 1")
+    if min_temp > initial_temp:
+        raise ValueError("minTemp must be less than or equal to initialTemp")
+
+    prng = random.Random(settings["seed"]) if "seed" in settings else random
+    start_time = time.time()
+    lab_colors = [rgb_to_lab(rgb) for rgb in colors]
     
     def calculate_fitness(selection: List[int]) -> float:
         min_dist = float('inf')
