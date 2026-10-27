@@ -1,5 +1,6 @@
 import { rgbToHex } from './colorUtils.js';
-import { updateGenerateButtonText, updateComplexityEstimate } from './uiUtils.js';
+import { validateAnalysisSize } from './securityLimits.js';
+import { updateGenerateButtonText, updateComplexityEstimate, readRandomColorCount } from './uiUtils.js';
 
 export function showExportModal(colors) {
     // Create modal if it doesn't exist
@@ -86,6 +87,13 @@ export function importColors() {
             throw new Error('No valid colors found in input');
         }
 
+        validateAnalysisSize(importedColors.length);
+        if (mode !== 'replace') {
+            const randomCount = readRandomColorCount();
+            validateAnalysisSize(randomCount);
+            validateAnalysisSize(randomCount + importedColors.length);
+        }
+
         // Validate colors
         importedColors = importedColors.map(color => {
             if (!Array.isArray(color) || color.length !== 3 ||
@@ -122,8 +130,6 @@ export function importColors() {
     } catch (error) {
         errorDiv.textContent = error.message;
         errorDiv.style.display = 'block';
-        window.importedColors = null;
-        document.getElementById('generateButton').textContent = 'Generate Colors';
     }
 }
 

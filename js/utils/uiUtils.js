@@ -1,5 +1,6 @@
 import { calibratePerformance } from './performanceUtils.js';
 import { formatTimeEstimate } from './timeUtils.js';
+import { validateAnalysisSize } from './securityLimits.js';
 
 export function showSpinner(message = 'Processing...', showCancel = false, onCancel = null) {
     hideSpinner();
@@ -231,8 +232,13 @@ export async function initializePage() {
     updateComplexityEstimate();
 }
 
+export function readRandomColorCount() {
+    const value = document.getElementById('totalColors').value.trim();
+    return value === '' ? NaN : Number(value);
+}
+
 export function updateGenerateButtonText() {
-    const randomCount = parseInt(document.getElementById('totalColors').value);
+    const randomCount = readRandomColorCount();
     const generateButton = document.getElementById('generateButton');
     
     if (window.importedColors) {
@@ -257,14 +263,14 @@ export function updateComplexityEstimate() {
     
     // Calculate total colors based on both imported and random colors
     if (window.importedColors) {
-        const randomCount = parseInt(document.getElementById('totalColors').value);
+        const randomCount = readRandomColorCount();
         if (window.importedColors.mode === 'replace') {
             totalColors = window.importedColors.colors.length;
         } else {
             totalColors = randomCount + window.importedColors.colors.length;
         }
     } else {
-        totalColors = parseInt(document.getElementById('totalColors').value);
+        totalColors = readRandomColorCount();
     }
     
     // Calculate number of combinations (n choose r)
@@ -289,64 +295,81 @@ export function updateComplexityEstimate() {
 }
 
 export function generateInitialColors() {
-    const totalColors = parseInt(document.getElementById('totalColors').value);
+    const totalColors = readRandomColorCount();
     let summary = '';
+    let initialColors;
     
-    // Clear previous results but keep initial colors if they exist
-    document.getElementById('results').innerHTML = '';
-    
-    if (window.importedColors) {
-        const importMode = window.importedColors.mode;
-        const importedCount = window.importedColors.colors.length;
-        
-        if (importMode === 'replace') {
-            window.initialColors = window.importedColors.colors;
-            summary = `Using ${importedCount} imported colors`;
-        } else { // append
-            const randomCount = totalColors;
-            window.initialColors = Array.from({length: randomCount}, () => window.randomColor())
-                .concat(window.importedColors.colors);
-            summary = `Generated ${randomCount} random colors and added ${importedCount} imported colors`;
+    try {
+        // Admit the combined palette before allocation, sorting or display changes.
+        const importedCount = window.importedColors?.colors.length || 0;
+        let paletteSize;
+        if (window.importedColors?.mode === 'replace') {
+            paletteSize = importedCount;
+        } else {
+            validateAnalysisSize(totalColors);
+            paletteSize = totalColors + importedCount;
         }
-    } else {
-        window.initialColors = Array.from({length: totalColors}, () => window.randomColor());
-        summary = `Generated ${totalColors} random colors`;
-    }
+        validateAnalysisSize(paletteSize);
+        if (paletteSize < 2) {
+            throw new RangeError('At least two colors are required; add imported or random colors');
+        }
     
-    // Update the display
-    const sortedInitialColors = window.sortColors(window.initialColors);
-    const metrics = window.calculateMetrics(sortedInitialColors);
-    const distribution = window.analyzeColorDistribution(sortedInitialColors);
-    
-    document.getElementById('colorSummary').textContent = summary;
-    document.getElementById('calculateButton').disabled = false;
-    
-    const initialHtml = `
-        <h2>Initial Colors (${window.initialColors.length} total)</h2>
-        <div>
-            ${sortedInitialColors.map(rgb => 
-                `<div class="swatch" style="background-color: ${window.rgbToHex(rgb)}"></div>`
-            ).join('')}
-        </div>
-        <div class="metrics">
-            <p>Total Colors: ${window.initialColors.length}</p>
-            <p>Minimum deltaE: ${metrics.min.toFixed(2)}</p>
-            <div style="display: flex; align-items: center;">
-                <span>Closest pair: </span>
-                ${(() => {
-                    const closest = window.findClosestPair(sortedInitialColors);
-                    return closest.colors.map(rgb => 
-                        `<div class="swatch" style="background-color: ${window.rgbToHex(rgb)}; margin: 0 5px;"></div>`
-                    ).join('');
-                })()}
-                <span>(deltaE: ${window.findClosestPair(sortedInitialColors).distance.toFixed(2)})</span>
+        if (window.importedColors) {
+            const importMode = window.importedColors.mode;
+            const importedCount = window.importedColors.colors.length;
+        
+            if (importMode === 'replace') {
+                initialColors = window.importedColors.colors;
+                summary = `Using ${importedCount} imported colors`;
+            } else { // append
+                const randomCount = totalColors;
+                initialColors = Array.from({length: randomCount}, () => window.randomColor())
+                    .concat(window.importedColors.colors);
+                summary = `Generated ${randomCount} random colors and added ${importedCount} imported colors`;
+            }
+        } else {
+            initialColors = Array.from({length: totalColors}, () => window.randomColor());
+            summary = `Generated ${totalColors} random colors`;
+        }
+
+        // Update the display
+        const sortedInitialColors = window.sortColors(initialColors);
+        const metrics = window.calculateMetrics(sortedInitialColors);
+        const distribution = window.analyzeColorDistribution(sortedInitialColors);
+        const closest = window.findClosestPair(sortedInitialColors);
+
+        const initialHtml = `
+            <h2>Initial Colors (${initialColors.length} total)</h2>
+            <div>
+                ${sortedInitialColors.map(rgb =>
+                    `<div class="swatch" style="background-color: ${window.rgbToHex(rgb)}"></div>`
+                ).join('')}
             </div>
-            <p>Average deltaE: ${metrics.avg.toFixed(2)}</p>
-            <p>Distribution Analysis:<br/> ${distribution}</p>
-        </div>
-        <div id="initial-plot" style="width:600px;height:400px;"></div>
-    `;
-    
-    document.getElementById('initial-colors').innerHTML = initialHtml;
-    window.createSpectrumPlot(sortedInitialColors, 'initial-plot');
-} 
+            <div class="metrics">
+                <p>Total Colors: ${initialColors.length}</p>
+                <p>Minimum deltaE: ${metrics.min.toFixed(2)}</p>
+                <div style="display: flex; align-items: center;">
+                    <span>Closest pair: </span>
+                    ${(() => {
+                        return closest.colors.map(rgb =>
+                            `<div class="swatch" style="background-color: ${window.rgbToHex(rgb)}; margin: 0 5px;"></div>`
+                        ).join('');
+                    })()}
+                    <span>(deltaE: ${closest.distance.toFixed(2)})</span>
+                </div>
+                <p>Average deltaE: ${metrics.avg.toFixed(2)}</p>
+                <p>Distribution Analysis:<br/> ${distribution}</p>
+            </div>
+            <div id="initial-plot" style="width:600px;height:400px;"></div>
+        `;
+
+        window.initialColors = initialColors;
+        document.getElementById('results').innerHTML = '';
+        document.getElementById('colorSummary').textContent = summary;
+        document.getElementById('calculateButton').disabled = false;
+        document.getElementById('initial-colors').innerHTML = initialHtml;
+        window.createSpectrumPlot(sortedInitialColors, 'initial-plot');
+    } catch (error) {
+        document.getElementById('colorSummary').textContent = error.message;
+    }
+}

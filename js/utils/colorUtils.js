@@ -1,3 +1,5 @@
+import { validateAnalysisSize } from './securityLimits.js';
+
 export function rgb2lab(rgb) {
     let r = rgb[0] / 255,
         g = rgb[1] / 255,
@@ -70,6 +72,7 @@ export function sortColors(colors) {
 }
 
 export function calculateMetrics(colors) {
+    validateAnalysisSize(colors.length);
     const labColors = colors.map(rgb2lab);
     let minDist = Infinity;
     let maxDist = -Infinity;
@@ -160,6 +163,7 @@ export function calculateDistanceMatrix(colors) {
 }
 
 export function findClosestPair(colors) {
+    validateAnalysisSize(colors.length);
     const labColors = colors.map(rgb2lab);
     let minDist = Infinity;
     let closestPair = [0, 1];
@@ -178,4 +182,4 @@ export function findClosestPair(colors) {
         colors: [colors[closestPair[0]], colors[closestPair[1]]],
         distance: minDist
     };
-} 
+}
